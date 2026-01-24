@@ -4,7 +4,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,8 +11,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"restaurant_project/internal/di"
+	"restaurant_project/pkg/logger"
 )
 
 // Runner quản lý việc chạy application
@@ -38,19 +39,19 @@ func (r *Runner) Run() error {
 
 // setupServer tạo HTTP server với Gin
 func (r *Runner) setupServer() {
-	fmt.Println("[4] Setting up Gin HTTP server...")
+	logger.Info("Setting up Gin HTTP server...")
 
 	// Thiết lập Gin mode dựa vào environment
-	if r.app.Config.Server.Host == "0.0.0.0" {
+	if r.app.Config.Log.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// Tạo Gin router
 	r.router = gin.New()
 
-	// Thêm middleware mặc định
-	r.router.Use(gin.Recovery())
-	r.router.Use(gin.Logger())
+	// Thêm middleware - SỬ DỤNG STRUCTURED LOGGER
+	r.router.Use(logger.GinRecovery()) // Recovery với zap logging
+	r.router.Use(logger.GinLogger())   // Request logging với zap
 
 	// Đăng ký routes
 	r.registerRoutes(r.router)
@@ -64,7 +65,11 @@ func (r *Runner) setupServer() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	fmt.Println("    Gin HTTP server configured")
+	logger.Info("Gin HTTP server configured",
+		zap.String("addr", r.server.Addr),
+		zap.Duration("read_timeout", r.app.Config.Server.ReadTimeout),
+		zap.Duration("write_timeout", r.app.Config.Server.WriteTimeout),
+	)
 }
 
 // registerRoutes đăng ký tất cả routes
@@ -76,6 +81,9 @@ func (r *Runner) registerRoutes(router *gin.Engine) {
 	healthGroup := router.Group(r.app.HealthHandler.BasePath())
 	r.app.HealthHandler.RegisterRoutes(healthGroup)
 
+	// Swagger endpoints - đăng ký trực tiếp trên router
+	r.app.SwaggerHandler.RegisterRoutesOnEngine(router)
+
 	// API routes
 	api := router.Group("/api")
 	{
@@ -83,6 +91,8 @@ func (r *Runner) registerRoutes(router *gin.Engine) {
 		monAnGroup := api.Group(r.app.MonAnHandler.BasePath())
 		r.app.MonAnHandler.RegisterRoutes(monAnGroup)
 	}
+
+	logger.Debug("Routes registered successfully")
 }
 
 // handleRoot xử lý root endpoint
@@ -91,7 +101,9 @@ func (r *Runner) handleRoot(c *gin.Context) {
 		"message": "Restaurant Menu API",
 		"version": "2.0.0",
 		"di":      "Google Wire",
+		"logger":  "Uber Zap",
 		"endpoints": gin.H{
+			"GET /swagger/index.html":       "Swagger UI",
 			"GET /health":                   "Full health check",
 			"GET /health/live":              "Liveness probe",
 			"GET /health/ready":             "Readiness probe",
@@ -118,14 +130,20 @@ func (r *Runner) runWithGracefulShutdown() error {
 
 	// Chạy server trong goroutine
 	go func() {
+		// Banner for console
 		fmt.Println("\n==============================================")
 		fmt.Printf("Server running at http://%s:%s\n", r.app.Config.Server.Host, r.app.Config.Server.Port)
 		fmt.Println("Powered by Gin Framework + Google Wire DI")
+		fmt.Println("Logger: Uber Zap (Structured)")
 		fmt.Println("==============================================")
 		fmt.Println("\nEndpoints:")
 		fmt.Printf("  curl http://localhost:%s/health\n", r.app.Config.Server.Port)
 		fmt.Printf("  curl http://localhost:%s/api/mon-an\n", r.app.Config.Server.Port)
 		fmt.Println("\nPress Ctrl+C to stop...")
+
+		logger.Info("HTTP server started",
+			zap.String("addr", r.server.Addr),
+		)
 
 		if err := r.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			serverErr <- err
@@ -135,36 +153,37 @@ func (r *Runner) runWithGracefulShutdown() error {
 	// Chờ signal hoặc error
 	select {
 	case err := <-serverErr:
+		logger.Error("Server error", zap.Error(err))
 		return fmt.Errorf("server error: %w", err)
 	case sig := <-quit:
-		fmt.Printf("\n\nReceived signal: %v\n", sig)
+		logger.Info("Received shutdown signal", zap.String("signal", sig.String()))
 		return r.shutdown()
 	}
 }
 
 // shutdown thực hiện graceful shutdown
 func (r *Runner) shutdown() error {
-	fmt.Println("Starting graceful shutdown...")
+	logger.Info("Starting graceful shutdown...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), r.app.Config.Server.ShutdownTimeout)
 	defer cancel()
 
 	// Shutdown HTTP server
-	fmt.Println("  -> Stopping HTTP server...")
+	logger.Info("Stopping HTTP server...")
 	if err := r.server.Shutdown(ctx); err != nil {
-		log.Printf("HTTP server shutdown error: %v", err)
+		logger.Error("HTTP server shutdown error", zap.Error(err))
 	} else {
-		fmt.Println("  -> HTTP server stopped")
+		logger.Info("HTTP server stopped")
 	}
 
 	// Shutdown databases
-	fmt.Println("  -> Closing database connections...")
+	logger.Info("Closing database connections...")
 	if err := r.app.DBManager.Shutdown(ctx); err != nil {
-		log.Printf("Database shutdown error: %v", err)
+		logger.Error("Database shutdown error", zap.Error(err))
 	} else {
-		fmt.Println("  -> Database connections closed")
+		logger.Info("Database connections closed")
 	}
 
-	fmt.Println("\nGraceful shutdown completed")
+	logger.Info("Graceful shutdown completed")
 	return nil
 }

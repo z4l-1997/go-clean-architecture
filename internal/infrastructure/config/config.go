@@ -10,9 +10,16 @@ import (
 // Config chứa tất cả cấu hình của ứng dụng
 type Config struct {
 	Server  ServerConfig
+	Log     LogConfig
 	MySQL   MySQLConfig
 	MongoDB MongoDBConfig
 	Redis   RedisConfig
+}
+
+// LogConfig cấu hình cho structured logger
+type LogConfig struct {
+	Level       string // debug, info, warn, error
+	Environment string // development, production
 }
 
 // ServerConfig cấu hình HTTP server
@@ -58,6 +65,10 @@ func Load() *Config {
 			ReadTimeout:     getEnvAsDuration("SERVER_READ_TIMEOUT", 15*time.Second),
 			WriteTimeout:    getEnvAsDuration("SERVER_WRITE_TIMEOUT", 15*time.Second),
 			ShutdownTimeout: getEnvAsDuration("SERVER_SHUTDOWN_TIMEOUT", 30*time.Second),
+		},
+		Log: LogConfig{
+			Level:       getEnv("LOG_LEVEL", "info"),
+			Environment: getEnv("ENVIRONMENT", "development"),
 		},
 		MySQL: MySQLConfig{
 			Host:     getEnv("MYSQL_HOST", "localhost"),

@@ -37,13 +37,15 @@ func InitializeApp() (*App, error) {
 	monAnUseCase := providers.ProvideMonAnUseCase(iMonAnRepository)
 	monAnHandler := providers.ProvideMonAnHandler(monAnUseCase)
 	healthHandler := providers.ProvideHealthHandler(dbManager)
+	swaggerHandler := providers.ProvideSwaggerHandler()
 	app := &App{
-		Config:        config,
-		DBManager:     dbManager,
-		MonAnHandler:  monAnHandler,
-		HealthHandler: healthHandler,
-		MongoConn:     mongoDBConnection,
-		RedisConn:     redisConnection,
+		Config:         config,
+		DBManager:      dbManager,
+		MonAnHandler:   monAnHandler,
+		HealthHandler:  healthHandler,
+		SwaggerHandler: swaggerHandler,
+		MongoConn:      mongoDBConnection,
+		RedisConn:      redisConnection,
 	}
 	return app, nil
 }
@@ -63,14 +65,15 @@ var RepositorySet = wire.NewSet(providers.ProvideMonAnMongoRepo, providers.Provi
 var UseCaseSet = wire.NewSet(providers.ProvideMonAnUseCase)
 
 // HandlerSet chứa các providers cho Handler layer
-var HandlerSet = wire.NewSet(providers.ProvideMonAnHandler, providers.ProvideHealthHandler)
+var HandlerSet = wire.NewSet(providers.ProvideMonAnHandler, providers.ProvideHealthHandler, providers.ProvideSwaggerHandler)
 
 // App chứa tất cả dependencies đã được inject
 type App struct {
-	Config        *config.Config
-	DBManager     *database.DBManager
-	MonAnHandler  *handler.MonAnHandler
-	HealthHandler *handler.HealthHandler
+	Config         *config.Config
+	DBManager      *database.DBManager
+	MonAnHandler   *handler.MonAnHandler
+	HealthHandler  *handler.HealthHandler
+	SwaggerHandler *handler.SwaggerHandler
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection

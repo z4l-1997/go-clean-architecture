@@ -51,6 +51,7 @@ var UseCaseSet = wire.NewSet(
 var HandlerSet = wire.NewSet(
 	providers.ProvideMonAnHandler,
 	providers.ProvideHealthHandler,
+	providers.ProvideSwaggerHandler,
 )
 
 // ============================================================
@@ -59,10 +60,11 @@ var HandlerSet = wire.NewSet(
 
 // App chứa tất cả dependencies đã được inject
 type App struct {
-	Config        *config.Config
-	DBManager     *database.DBManager
-	MonAnHandler  *handler.MonAnHandler
-	HealthHandler *handler.HealthHandler
+	Config         *config.Config
+	DBManager      *database.DBManager
+	MonAnHandler   *handler.MonAnHandler
+	HealthHandler  *handler.HealthHandler
+	SwaggerHandler *handler.SwaggerHandler
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection

@@ -19,6 +19,11 @@ func ProvideHealthHandler(dbManager *database.DBManager) *handler.HealthHandler 
 	return handler.NewHealthHandler(dbManager)
 }
 
+// ProvideSwaggerHandler tạo Swagger HTTP handler
+func ProvideSwaggerHandler() *handler.SwaggerHandler {
+	return handler.NewSwaggerHandler()
+}
+
 // ProvideHandlers trả về thông báo khi handlers đã sẵn sàng
 func ProvideHandlers(
 	monAnHandler *handler.MonAnHandler,

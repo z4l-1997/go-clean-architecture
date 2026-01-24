@@ -40,6 +40,15 @@ func generateID() string {
 }
 
 // ThemMon xử lý POST /api/mon-an - Thêm món mới
+// @Summary Thêm món ăn mới
+// @Description Thêm một món ăn mới vào menu
+// @Tags MonAn
+// @Accept json
+// @Produce json
+// @Param request body dto.ThemMonRequest true "Thông tin món ăn mới"
+// @Success 201 {object} dto.APIResponse{data=dto.MonAnResponse} "Thêm món thành công"
+// @Failure 400 {object} dto.APIResponse "Dữ liệu không hợp lệ"
+// @Router /api/mon-an [post]
 func (h *MonAnHandler) ThemMon(c *gin.Context) {
 	// Bước 1: Parse JSON từ request body
 	var req dto.ThemMonRequest
@@ -70,6 +79,15 @@ func (h *MonAnHandler) ThemMon(c *gin.Context) {
 }
 
 // XemMenu xử lý GET /api/mon-an - Xem tất cả món
+// @Summary Xem menu
+// @Description Lấy danh sách tất cả món ăn hoặc chỉ món còn hàng
+// @Tags MonAn
+// @Accept json
+// @Produce json
+// @Param con_hang query bool false "Chỉ lấy món còn hàng" default(false)
+// @Success 200 {object} dto.APIResponse{data=[]dto.MonAnResponse} "Lấy menu thành công"
+// @Failure 500 {object} dto.APIResponse "Lỗi server"
+// @Router /api/mon-an [get]
 func (h *MonAnHandler) XemMenu(c *gin.Context) {
 	// Kiểm tra query param ?con_hang=true
 	conHangOnly := c.Query("con_hang") == "true"
@@ -103,6 +121,16 @@ func (h *MonAnHandler) XemMenu(c *gin.Context) {
 }
 
 // TimMon xử lý GET /api/mon-an/:id - Tìm món theo ID
+// @Summary Tìm món theo ID
+// @Description Lấy thông tin chi tiết một món ăn theo ID
+// @Tags MonAn
+// @Accept json
+// @Produce json
+// @Param id path string true "ID món ăn"
+// @Success 200 {object} dto.APIResponse{data=dto.MonAnResponse} "Tìm món thành công"
+// @Failure 400 {object} dto.APIResponse "ID không hợp lệ"
+// @Failure 404 {object} dto.APIResponse "Không tìm thấy món"
+// @Router /api/mon-an/{id} [get]
 func (h *MonAnHandler) TimMon(c *gin.Context) {
 	// Lấy ID từ URL param
 	id := c.Param("id")
@@ -125,6 +153,16 @@ func (h *MonAnHandler) TimMon(c *gin.Context) {
 }
 
 // CapNhatGia xử lý PUT /api/mon-an/:id/gia - Cập nhật giá
+// @Summary Cập nhật giá món ăn
+// @Description Cập nhật giá mới cho một món ăn
+// @Tags MonAn
+// @Accept json
+// @Produce json
+// @Param id path string true "ID món ăn"
+// @Param request body dto.CapNhatGiaRequest true "Giá mới"
+// @Success 200 {object} dto.APIResponse{data=dto.MonAnResponse} "Cập nhật giá thành công"
+// @Failure 400 {object} dto.APIResponse "Dữ liệu không hợp lệ"
+// @Router /api/mon-an/{id}/gia [put]
 func (h *MonAnHandler) CapNhatGia(c *gin.Context) {
 	// Lấy ID từ URL param
 	id := c.Param("id")
@@ -161,6 +199,16 @@ func (h *MonAnHandler) CapNhatGia(c *gin.Context) {
 }
 
 // ApDungGiamGia xử lý PUT /api/mon-an/:id/giam-gia - Áp dụng giảm giá
+// @Summary Áp dụng giảm giá
+// @Description Áp dụng phần trăm giảm giá cho một món ăn
+// @Tags MonAn
+// @Accept json
+// @Produce json
+// @Param id path string true "ID món ăn"
+// @Param request body dto.ApDungGiamGiaRequest true "Phần trăm giảm giá"
+// @Success 200 {object} dto.APIResponse{data=dto.MonAnResponse} "Áp dụng giảm giá thành công"
+// @Failure 400 {object} dto.APIResponse "Dữ liệu không hợp lệ"
+// @Router /api/mon-an/{id}/giam-gia [put]
 func (h *MonAnHandler) ApDungGiamGia(c *gin.Context) {
 	// Lấy ID từ URL param
 	id := c.Param("id")
@@ -197,6 +245,15 @@ func (h *MonAnHandler) ApDungGiamGia(c *gin.Context) {
 }
 
 // XoaMon xử lý DELETE /api/mon-an/:id - Xóa món
+// @Summary Xóa món ăn
+// @Description Xóa một món ăn khỏi menu
+// @Tags MonAn
+// @Accept json
+// @Produce json
+// @Param id path string true "ID món ăn"
+// @Success 200 {object} dto.APIResponse "Xóa món thành công"
+// @Failure 400 {object} dto.APIResponse "Không thể xóa món"
+// @Router /api/mon-an/{id} [delete]
 func (h *MonAnHandler) XoaMon(c *gin.Context) {
 	id := c.Param("id")
 
@@ -218,6 +275,15 @@ func (h *MonAnHandler) XoaMon(c *gin.Context) {
 }
 
 // DanhDauHetHang xử lý PUT /api/mon-an/:id/het-hang - Đánh dấu hết hàng
+// @Summary Đánh dấu hết hàng
+// @Description Đánh dấu một món ăn là hết hàng
+// @Tags MonAn
+// @Accept json
+// @Produce json
+// @Param id path string true "ID món ăn"
+// @Success 200 {object} dto.APIResponse{data=dto.MonAnResponse} "Đánh dấu hết hàng thành công"
+// @Failure 400 {object} dto.APIResponse "Không thể đánh dấu hết hàng"
+// @Router /api/mon-an/{id}/het-hang [put]
 func (h *MonAnHandler) DanhDauHetHang(c *gin.Context) {
 	id := c.Param("id")
 

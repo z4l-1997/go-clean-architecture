@@ -1,0 +1,457 @@
+basePath: /
+definitions:
+  internal_presentation_http_handler.HealthResponse:
+    properties:
+      services:
+        additionalProperties:
+          $ref: '#/definitions/restaurant_project_internal_infrastructure_database.HealthStatus'
+        type: object
+      status:
+        type: string
+      timestamp:
+        type: string
+      uptime:
+        type: string
+    type: object
+  internal_presentation_http_handler.LivenessResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  internal_presentation_http_handler.ReadinessResponse:
+    properties:
+      ready:
+        type: boolean
+      status:
+        type: string
+    type: object
+  restaurant_project_internal_infrastructure_database.ConnectionState:
+    enum:
+    - disconnected
+    - connecting
+    - connected
+    - error
+    type: string
+    x-enum-varnames:
+    - StateDisconnected
+    - StateConnecting
+    - StateConnected
+    - StateError
+  restaurant_project_internal_infrastructure_database.HealthStatus:
+    properties:
+      checked_at:
+        type: string
+      details:
+        additionalProperties: {}
+        type: object
+      healthy:
+        type: boolean
+      latency_ms:
+        $ref: '#/definitions/time.Duration'
+      message:
+        type: string
+      state:
+        $ref: '#/definitions/restaurant_project_internal_infrastructure_database.ConnectionState'
+    type: object
+  restaurant_project_internal_presentation_http_dto.APIResponse:
+    properties:
+      data:
+        description: Dữ liệu trả về (nếu có)
+      error:
+        description: Lỗi (nếu có)
+        example: ""
+        type: string
+      message:
+        description: Thông báo
+        example: Thao tác thành công
+        type: string
+      success:
+        description: Request thành công hay thất bại
+        example: true
+        type: boolean
+    type: object
+  restaurant_project_internal_presentation_http_dto.ApDungGiamGiaRequest:
+    properties:
+      phan_tram:
+        description: Phần trăm giảm giá (0-100)
+        example: 10
+        type: integer
+    type: object
+  restaurant_project_internal_presentation_http_dto.CapNhatGiaRequest:
+    properties:
+      gia:
+        description: Giá mới (VND)
+        example: 55000
+        type: integer
+    type: object
+  restaurant_project_internal_presentation_http_dto.MonAnResponse:
+    properties:
+      co_the_ban:
+        description: Có thể bán không (business logic)
+        example: true
+        type: boolean
+      con_hang:
+        description: Còn bán không
+        example: true
+        type: boolean
+      gia:
+        description: Giá gốc
+        example: 50000
+        type: integer
+      gia_sau_giam:
+        description: Giá sau giảm giá
+        example: 45000
+        type: integer
+      giam_gia:
+        description: '% giảm giá'
+        example: 10
+        type: integer
+      id:
+        description: Mã món
+        example: 1_mon
+        type: string
+      mo_ta:
+        description: Mô tả
+        example: Phở truyền thống
+        type: string
+      ngay_cap_nhat:
+        description: Ngày cập nhật
+        example: 24/01/2026 10:30
+        type: string
+      ngay_tao:
+        description: Ngày tạo (format đẹp)
+        example: 24/01/2026 10:00
+        type: string
+      ten:
+        description: Tên món
+        example: Phở bò tái
+        type: string
+    type: object
+  restaurant_project_internal_presentation_http_dto.ThemMonRequest:
+    properties:
+      gia:
+        description: Giá món (VND)
+        example: 50000
+        type: integer
+      mo_ta:
+        description: Mô tả món ăn
+        example: Phở truyền thống với thịt bò tái
+        type: string
+      ten:
+        description: Tên món ăn
+        example: Phở bò tái
+        type: string
+    type: object
+  time.Duration:
+    enum:
+    - -9223372036854775808
+    - 9223372036854775807
+    - 1
+    - 1000
+    - 1000000
+    - 1000000000
+    - 60000000000
+    - 3600000000000
+    format: int64
+    type: integer
+    x-enum-varnames:
+    - minDuration
+    - maxDuration
+    - Nanosecond
+    - Microsecond
+    - Millisecond
+    - Second
+    - Minute
+    - Hour
+host: localhost:8080
+info:
+  contact:
+    email: support@restaurant.local
+    name: API Support
+  description: API quản lý menu nhà hàng - Xây dựng theo Clean Architecture
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Restaurant Menu API
+  version: 2.0.0
+paths:
+  /api/mon-an:
+    get:
+      consumes:
+      - application/json
+      description: Lấy danh sách tất cả món ăn hoặc chỉ món còn hàng
+      parameters:
+      - default: false
+        description: Chỉ lấy món còn hàng
+        in: query
+        name: con_hang
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lấy menu thành công
+          schema:
+            allOf:
+            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+                  type: array
+              type: object
+        "500":
+          description: Lỗi server
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+      summary: Xem menu
+      tags:
+      - MonAn
+    post:
+      consumes:
+      - application/json
+      description: Thêm một món ăn mới vào menu
+      parameters:
+      - description: Thông tin món ăn mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.ThemMonRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Thêm món thành công
+          schema:
+            allOf:
+            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+              type: object
+        "400":
+          description: Dữ liệu không hợp lệ
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+      summary: Thêm món ăn mới
+      tags:
+      - MonAn
+  /api/mon-an/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Xóa một món ăn khỏi menu
+      parameters:
+      - description: ID món ăn
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Xóa món thành công
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+        "400":
+          description: Không thể xóa món
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+      summary: Xóa món ăn
+      tags:
+      - MonAn
+    get:
+      consumes:
+      - application/json
+      description: Lấy thông tin chi tiết một món ăn theo ID
+      parameters:
+      - description: ID món ăn
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tìm món thành công
+          schema:
+            allOf:
+            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+              type: object
+        "400":
+          description: ID không hợp lệ
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+        "404":
+          description: Không tìm thấy món
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+      summary: Tìm món theo ID
+      tags:
+      - MonAn
+  /api/mon-an/{id}/gia:
+    put:
+      consumes:
+      - application/json
+      description: Cập nhật giá mới cho một món ăn
+      parameters:
+      - description: ID món ăn
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Giá mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.CapNhatGiaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cập nhật giá thành công
+          schema:
+            allOf:
+            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+              type: object
+        "400":
+          description: Dữ liệu không hợp lệ
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+      summary: Cập nhật giá món ăn
+      tags:
+      - MonAn
+  /api/mon-an/{id}/giam-gia:
+    put:
+      consumes:
+      - application/json
+      description: Áp dụng phần trăm giảm giá cho một món ăn
+      parameters:
+      - description: ID món ăn
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Phần trăm giảm giá
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.ApDungGiamGiaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Áp dụng giảm giá thành công
+          schema:
+            allOf:
+            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+              type: object
+        "400":
+          description: Dữ liệu không hợp lệ
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+      summary: Áp dụng giảm giá
+      tags:
+      - MonAn
+  /api/mon-an/{id}/het-hang:
+    put:
+      consumes:
+      - application/json
+      description: Đánh dấu một món ăn là hết hàng
+      parameters:
+      - description: ID món ăn
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Đánh dấu hết hàng thành công
+          schema:
+            allOf:
+            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+              type: object
+        "400":
+          description: Không thể đánh dấu hết hàng
+          schema:
+            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+      summary: Đánh dấu hết hàng
+      tags:
+      - MonAn
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Kiểm tra sức khỏe tổng thể của hệ thống bao gồm tất cả services
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Hệ thống healthy
+          schema:
+            $ref: '#/definitions/internal_presentation_http_handler.HealthResponse'
+        "503":
+          description: Hệ thống unhealthy
+          schema:
+            $ref: '#/definitions/internal_presentation_http_handler.HealthResponse'
+      summary: Full health check
+      tags:
+      - Health
+  /health/live:
+    get:
+      consumes:
+      - application/json
+      description: Kubernetes liveness probe - kiểm tra app có đang chạy không
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: App đang chạy
+          schema:
+            $ref: '#/definitions/internal_presentation_http_handler.LivenessResponse'
+      summary: Liveness probe
+      tags:
+      - Health
+  /health/ready:
+    get:
+      consumes:
+      - application/json
+      description: Kubernetes readiness probe - kiểm tra app có sẵn sàng nhận traffic
+        không
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: App sẵn sàng
+          schema:
+            $ref: '#/definitions/internal_presentation_http_handler.ReadinessResponse'
+        "503":
+          description: App chưa sẵn sàng
+          schema:
+            $ref: '#/definitions/internal_presentation_http_handler.ReadinessResponse'
+      summary: Readiness probe
+      tags:
+      - Health
+schemes:
+- http
+swagger: "2.0"

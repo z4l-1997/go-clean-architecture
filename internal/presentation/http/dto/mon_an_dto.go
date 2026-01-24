@@ -13,19 +13,19 @@ import (
 // ThemMonRequest là dữ liệu client gửi khi thêm món mới
 // JSON tags định nghĩa tên field khi parse JSON
 type ThemMonRequest struct {
-	Ten  string `json:"ten"`   // Tên món ăn
-	Gia  int64  `json:"gia"`   // Giá món (VND)
-	MoTa string `json:"mo_ta"` // Mô tả món ăn
+	Ten  string `json:"ten" example:"Phở bò tái"`       // Tên món ăn
+	Gia  int64  `json:"gia" example:"50000"`            // Giá món (VND)
+	MoTa string `json:"mo_ta" example:"Phở truyền thống với thịt bò tái"` // Mô tả món ăn
 }
 
 // CapNhatGiaRequest là dữ liệu client gửi khi cập nhật giá
 type CapNhatGiaRequest struct {
-	Gia int64 `json:"gia"` // Giá mới (VND)
+	Gia int64 `json:"gia" example:"55000"` // Giá mới (VND)
 }
 
 // ApDungGiamGiaRequest là dữ liệu client gửi khi áp dụng giảm giá
 type ApDungGiamGiaRequest struct {
-	PhanTram int `json:"phan_tram"` // Phần trăm giảm giá (0-100)
+	PhanTram int `json:"phan_tram" example:"10"` // Phần trăm giảm giá (0-100)
 }
 
 // ============================================
@@ -38,16 +38,16 @@ type ApDungGiamGiaRequest struct {
 // 2. Client có thể cần format khác (VD: giá đã format, ngày theo định dạng khác)
 // 3. Tách biệt API contract với internal data model
 type MonAnResponse struct {
-	ID          string `json:"id"`           // Mã món
-	Ten         string `json:"ten"`          // Tên món
-	Gia         int64  `json:"gia"`          // Giá gốc
-	GiaSauGiam  int64  `json:"gia_sau_giam"` // Giá sau giảm giá
-	MoTa        string `json:"mo_ta"`        // Mô tả
-	ConHang     bool   `json:"con_hang"`     // Còn bán không
-	GiamGia     int    `json:"giam_gia"`     // % giảm giá
-	CoTheBan    bool   `json:"co_the_ban"`   // Có thể bán không (business logic)
-	NgayTao     string `json:"ngay_tao"`     // Ngày tạo (format đẹp)
-	NgayCapNhat string `json:"ngay_cap_nhat"` // Ngày cập nhật
+	ID          string `json:"id" example:"1_mon"`                    // Mã món
+	Ten         string `json:"ten" example:"Phở bò tái"`              // Tên món
+	Gia         int64  `json:"gia" example:"50000"`                   // Giá gốc
+	GiaSauGiam  int64  `json:"gia_sau_giam" example:"45000"`          // Giá sau giảm giá
+	MoTa        string `json:"mo_ta" example:"Phở truyền thống"`      // Mô tả
+	ConHang     bool   `json:"con_hang" example:"true"`               // Còn bán không
+	GiamGia     int    `json:"giam_gia" example:"10"`                 // % giảm giá
+	CoTheBan    bool   `json:"co_the_ban" example:"true"`             // Có thể bán không (business logic)
+	NgayTao     string `json:"ngay_tao" example:"24/01/2026 10:00"`   // Ngày tạo (format đẹp)
+	NgayCapNhat string `json:"ngay_cap_nhat" example:"24/01/2026 10:30"` // Ngày cập nhật
 }
 
 // ToMonAnResponse chuyển đổi Entity sang Response DTO
@@ -82,10 +82,10 @@ func ToMonAnResponseList(monList []*entity.MonAn) []MonAnResponse {
 
 // APIResponse là cấu trúc response chuẩn cho tất cả API
 type APIResponse struct {
-	Success bool        `json:"success"`         // Request thành công hay thất bại
-	Message string      `json:"message"`         // Thông báo
-	Data    interface{} `json:"data,omitempty"`  // Dữ liệu trả về (nếu có)
-	Error   string      `json:"error,omitempty"` // Lỗi (nếu có)
+	Success bool        `json:"success" example:"true"`           // Request thành công hay thất bại
+	Message string      `json:"message" example:"Thao tác thành công"` // Thông báo
+	Data    interface{} `json:"data,omitempty"`                   // Dữ liệu trả về (nếu có)
+	Error   string      `json:"error,omitempty" example:""`       // Lỗi (nếu có)
 }
 
 // NewSuccessResponse tạo response thành công

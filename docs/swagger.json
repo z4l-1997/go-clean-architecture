@@ -1,0 +1,690 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "API quản lý menu nhà hàng - Xây dựng theo Clean Architecture",
+        "title": "Restaurant Menu API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "email": "support@restaurant.local"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "2.0.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/mon-an": {
+            "get": {
+                "description": "Lấy danh sách tất cả món ăn hoặc chỉ món còn hàng",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MonAn"
+                ],
+                "summary": "Xem menu",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Chỉ lấy món còn hàng",
+                        "name": "con_hang",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lấy menu thành công",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Lỗi server",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Thêm một món ăn mới vào menu",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MonAn"
+                ],
+                "summary": "Thêm món ăn mới",
+                "parameters": [
+                    {
+                        "description": "Thông tin món ăn mới",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.ThemMonRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Thêm món thành công",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Dữ liệu không hợp lệ",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mon-an/{id}": {
+            "get": {
+                "description": "Lấy thông tin chi tiết một món ăn theo ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MonAn"
+                ],
+                "summary": "Tìm món theo ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID món ăn",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tìm món thành công",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "ID không hợp lệ",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Không tìm thấy món",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Xóa một món ăn khỏi menu",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MonAn"
+                ],
+                "summary": "Xóa món ăn",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID món ăn",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Xóa món thành công",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Không thể xóa món",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mon-an/{id}/gia": {
+            "put": {
+                "description": "Cập nhật giá mới cho một món ăn",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MonAn"
+                ],
+                "summary": "Cập nhật giá món ăn",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID món ăn",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Giá mới",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.CapNhatGiaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cập nhật giá thành công",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Dữ liệu không hợp lệ",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mon-an/{id}/giam-gia": {
+            "put": {
+                "description": "Áp dụng phần trăm giảm giá cho một món ăn",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MonAn"
+                ],
+                "summary": "Áp dụng giảm giá",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID món ăn",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Phần trăm giảm giá",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.ApDungGiamGiaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Áp dụng giảm giá thành công",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Dữ liệu không hợp lệ",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/mon-an/{id}/het-hang": {
+            "put": {
+                "description": "Đánh dấu một món ăn là hết hàng",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "MonAn"
+                ],
+                "summary": "Đánh dấu hết hàng",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID món ăn",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Đánh dấu hết hàng thành công",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Không thể đánh dấu hết hàng",
+                        "schema": {
+                            "$ref": "#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Kiểm tra sức khỏe tổng thể của hệ thống bao gồm tất cả services",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Full health check",
+                "responses": {
+                    "200": {
+                        "description": "Hệ thống healthy",
+                        "schema": {
+                            "$ref": "#/definitions/internal_presentation_http_handler.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Hệ thống unhealthy",
+                        "schema": {
+                            "$ref": "#/definitions/internal_presentation_http_handler.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/live": {
+            "get": {
+                "description": "Kubernetes liveness probe - kiểm tra app có đang chạy không",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Liveness probe",
+                "responses": {
+                    "200": {
+                        "description": "App đang chạy",
+                        "schema": {
+                            "$ref": "#/definitions/internal_presentation_http_handler.LivenessResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "description": "Kubernetes readiness probe - kiểm tra app có sẵn sàng nhận traffic không",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Readiness probe",
+                "responses": {
+                    "200": {
+                        "description": "App sẵn sàng",
+                        "schema": {
+                            "$ref": "#/definitions/internal_presentation_http_handler.ReadinessResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "App chưa sẵn sàng",
+                        "schema": {
+                            "$ref": "#/definitions/internal_presentation_http_handler.ReadinessResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "internal_presentation_http_handler.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "services": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/restaurant_project_internal_infrastructure_database.HealthStatus"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "uptime": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_presentation_http_handler.LivenessResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_presentation_http_handler.ReadinessResponse": {
+            "type": "object",
+            "properties": {
+                "ready": {
+                    "type": "boolean"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "restaurant_project_internal_infrastructure_database.ConnectionState": {
+            "type": "string",
+            "enum": [
+                "disconnected",
+                "connecting",
+                "connected",
+                "error"
+            ],
+            "x-enum-varnames": [
+                "StateDisconnected",
+                "StateConnecting",
+                "StateConnected",
+                "StateError"
+            ]
+        },
+        "restaurant_project_internal_infrastructure_database.HealthStatus": {
+            "type": "object",
+            "properties": {
+                "checked_at": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "healthy": {
+                    "type": "boolean"
+                },
+                "latency_ms": {
+                    "$ref": "#/definitions/time.Duration"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "state": {
+                    "$ref": "#/definitions/restaurant_project_internal_infrastructure_database.ConnectionState"
+                }
+            }
+        },
+        "restaurant_project_internal_presentation_http_dto.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Dữ liệu trả về (nếu có)"
+                },
+                "error": {
+                    "description": "Lỗi (nếu có)",
+                    "type": "string",
+                    "example": ""
+                },
+                "message": {
+                    "description": "Thông báo",
+                    "type": "string",
+                    "example": "Thao tác thành công"
+                },
+                "success": {
+                    "description": "Request thành công hay thất bại",
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "restaurant_project_internal_presentation_http_dto.ApDungGiamGiaRequest": {
+            "type": "object",
+            "properties": {
+                "phan_tram": {
+                    "description": "Phần trăm giảm giá (0-100)",
+                    "type": "integer",
+                    "example": 10
+                }
+            }
+        },
+        "restaurant_project_internal_presentation_http_dto.CapNhatGiaRequest": {
+            "type": "object",
+            "properties": {
+                "gia": {
+                    "description": "Giá mới (VND)",
+                    "type": "integer",
+                    "example": 55000
+                }
+            }
+        },
+        "restaurant_project_internal_presentation_http_dto.MonAnResponse": {
+            "type": "object",
+            "properties": {
+                "co_the_ban": {
+                    "description": "Có thể bán không (business logic)",
+                    "type": "boolean",
+                    "example": true
+                },
+                "con_hang": {
+                    "description": "Còn bán không",
+                    "type": "boolean",
+                    "example": true
+                },
+                "gia": {
+                    "description": "Giá gốc",
+                    "type": "integer",
+                    "example": 50000
+                },
+                "gia_sau_giam": {
+                    "description": "Giá sau giảm giá",
+                    "type": "integer",
+                    "example": 45000
+                },
+                "giam_gia": {
+                    "description": "% giảm giá",
+                    "type": "integer",
+                    "example": 10
+                },
+                "id": {
+                    "description": "Mã món",
+                    "type": "string",
+                    "example": "1_mon"
+                },
+                "mo_ta": {
+                    "description": "Mô tả",
+                    "type": "string",
+                    "example": "Phở truyền thống"
+                },
+                "ngay_cap_nhat": {
+                    "description": "Ngày cập nhật",
+                    "type": "string",
+                    "example": "24/01/2026 10:30"
+                },
+                "ngay_tao": {
+                    "description": "Ngày tạo (format đẹp)",
+                    "type": "string",
+                    "example": "24/01/2026 10:00"
+                },
+                "ten": {
+                    "description": "Tên món",
+                    "type": "string",
+                    "example": "Phở bò tái"
+                }
+            }
+        },
+        "restaurant_project_internal_presentation_http_dto.ThemMonRequest": {
+            "type": "object",
+            "properties": {
+                "gia": {
+                    "description": "Giá món (VND)",
+                    "type": "integer",
+                    "example": 50000
+                },
+                "mo_ta": {
+                    "description": "Mô tả món ăn",
+                    "type": "string",
+                    "example": "Phở truyền thống với thịt bò tái"
+                },
+                "ten": {
+                    "description": "Tên món ăn",
+                    "type": "string",
+                    "example": "Phở bò tái"
+                }
+            }
+        },
+        "time.Duration": {
+            "type": "integer",
+            "format": "int64",
+            "enum": [
+                -9223372036854775808,
+                9223372036854775807,
+                1,
+                1000,
+                1000000,
+                1000000000,
+                60000000000,
+                3600000000000
+            ],
+            "x-enum-varnames": [
+                "minDuration",
+                "maxDuration",
+                "Nanosecond",
+                "Microsecond",
+                "Millisecond",
+                "Second",
+                "Minute",
+                "Hour"
+            ]
+        }
+    }
+}

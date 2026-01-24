@@ -43,6 +43,14 @@ type ReadinessResponse struct {
 }
 
 // Health xử lý GET /health - Full health check
+// @Summary Full health check
+// @Description Kiểm tra sức khỏe tổng thể của hệ thống bao gồm tất cả services
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {object} HealthResponse "Hệ thống healthy"
+// @Failure 503 {object} HealthResponse "Hệ thống unhealthy"
+// @Router /health [get]
 func (h *HealthHandler) Health(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -74,6 +82,13 @@ func (h *HealthHandler) Health(c *gin.Context) {
 
 // Liveness xử lý GET /health/live - Kubernetes liveness probe
 // Chỉ kiểm tra app có đang chạy không (không kiểm tra dependencies)
+// @Summary Liveness probe
+// @Description Kubernetes liveness probe - kiểm tra app có đang chạy không
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {object} LivenessResponse "App đang chạy"
+// @Router /health/live [get]
 func (h *HealthHandler) Liveness(c *gin.Context) {
 	response := LivenessResponse{
 		Status: "alive",
@@ -84,6 +99,14 @@ func (h *HealthHandler) Liveness(c *gin.Context) {
 
 // Readiness xử lý GET /health/ready - Kubernetes readiness probe
 // Kiểm tra app có sẵn sàng nhận traffic không
+// @Summary Readiness probe
+// @Description Kubernetes readiness probe - kiểm tra app có sẵn sàng nhận traffic không
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {object} ReadinessResponse "App sẵn sàng"
+// @Failure 503 {object} ReadinessResponse "App chưa sẵn sàng"
+// @Router /health/ready [get]
 func (h *HealthHandler) Readiness(c *gin.Context) {
 	ctx := c.Request.Context()
 
