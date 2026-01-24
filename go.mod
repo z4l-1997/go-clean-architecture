@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.9.3
+	github.com/google/wire v0.7.0
 	github.com/redis/go-redis/v9 v9.17.2
 	go.mongodb.org/mongo-driver v1.17.7
 )

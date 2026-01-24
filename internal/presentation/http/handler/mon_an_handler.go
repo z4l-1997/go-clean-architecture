@@ -237,3 +237,23 @@ func (h *MonAnHandler) DanhDauHetHang(c *gin.Context) {
 	c.JSON(http.StatusOK,
 		dto.NewSuccessResponse("Đánh dấu hết hàng thành công", dto.ToMonAnResponse(mon)))
 }
+
+// ============================================================
+// RouteRegistrar Interface Implementation
+// ============================================================
+
+// BasePath trả về base path cho MonAn module
+func (h *MonAnHandler) BasePath() string {
+	return "/mon-an"
+}
+
+// RegisterRoutes đăng ký tất cả routes của MonAn module
+func (h *MonAnHandler) RegisterRoutes(rg *gin.RouterGroup) {
+	rg.GET("", h.XemMenu)
+	rg.POST("", h.ThemMon)
+	rg.GET("/:id", h.TimMon)
+	rg.DELETE("/:id", h.XoaMon)
+	rg.PUT("/:id/gia", h.CapNhatGia)
+	rg.PUT("/:id/giam-gia", h.ApDungGiamGia)
+	rg.PUT("/:id/het-hang", h.DanhDauHetHang)
+}

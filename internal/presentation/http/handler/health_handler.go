@@ -101,3 +101,19 @@ func (h *HealthHandler) Readiness(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, response)
 	}
 }
+
+// ============================================================
+// RouteRegistrar Interface Implementation
+// ============================================================
+
+// BasePath trả về base path cho Health module
+func (h *HealthHandler) BasePath() string {
+	return "/health"
+}
+
+// RegisterRoutes đăng ký tất cả routes của Health module
+func (h *HealthHandler) RegisterRoutes(rg *gin.RouterGroup) {
+	rg.GET("", h.Health)
+	rg.GET("/live", h.Liveness)
+	rg.GET("/ready", h.Readiness)
+}

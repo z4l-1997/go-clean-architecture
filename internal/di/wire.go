@@ -1,0 +1,88 @@
+//go:build wireinject
+// +build wireinject
+
+// Package di chứa dependency injection configuration với Google Wire
+package di
+
+import (
+	"github.com/google/wire"
+
+	"restaurant_project/internal/di/providers"
+	"restaurant_project/internal/infrastructure/config"
+	"restaurant_project/internal/infrastructure/database"
+	"restaurant_project/internal/presentation/http/handler"
+)
+
+// ============================================================
+// Provider Sets - Nhóm các providers theo layer
+// ============================================================
+
+// ConfigSet chứa các providers cho Config layer
+var ConfigSet = wire.NewSet(
+	providers.ProvideConfig,
+	providers.ProvideMongoDBConfig,
+	providers.ProvideRedisConfig,
+	providers.ProvideServerConfig,
+)
+
+// DatabaseSet chứa các providers cho Database layer
+var DatabaseSet = wire.NewSet(
+	providers.ProvideMongoDBConnection,
+	providers.ProvideRedisConnection,
+	providers.ProvideDBManager,
+	providers.ProvideMongoDB,
+	providers.ProvideRedisClient,
+)
+
+// RepositorySet chứa các providers cho Repository layer
+var RepositorySet = wire.NewSet(
+	providers.ProvideMonAnMongoRepo,
+	providers.ProvideRedisCacheRepository,
+	providers.ProvideCachedMonAnRepository,
+	providers.ProvideMonAnRepository,
+)
+
+// UseCaseSet chứa các providers cho UseCase layer
+var UseCaseSet = wire.NewSet(
+	providers.ProvideMonAnUseCase,
+)
+
+// HandlerSet chứa các providers cho Handler layer
+var HandlerSet = wire.NewSet(
+	providers.ProvideMonAnHandler,
+	providers.ProvideHealthHandler,
+)
+
+// ============================================================
+// App struct - Container chứa tất cả dependencies
+// ============================================================
+
+// App chứa tất cả dependencies đã được inject
+type App struct {
+	Config        *config.Config
+	DBManager     *database.DBManager
+	MonAnHandler  *handler.MonAnHandler
+	HealthHandler *handler.HealthHandler
+
+	// Internal connections (để cleanup)
+	MongoConn *database.MongoDBConnection
+	RedisConn *database.RedisConnection
+}
+
+// ============================================================
+// Injector function - Wire sẽ generate implementation
+// ============================================================
+
+// InitializeApp là injector function - Wire sẽ tự động generate code
+// để tạo App với tất cả dependencies
+func InitializeApp() (*App, error) {
+	wire.Build(
+		ConfigSet,
+		DatabaseSet,
+		RepositorySet,
+		UseCaseSet,
+		HandlerSet,
+		wire.Struct(new(App), "*"),
+	)
+	return nil, nil
+}

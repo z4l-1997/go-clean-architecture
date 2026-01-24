@@ -6,21 +6,25 @@ import (
 	"log"
 
 	"restaurant_project/internal/app"
-	"restaurant_project/internal/infrastructure/config"
+	"restaurant_project/internal/di"
 )
 
 func main() {
 	fmt.Println("==============================================")
 	fmt.Println("   RESTAURANT MENU API - Clean Architecture")
-	fmt.Println("==============================================\n")
+	fmt.Println("   Dependency Injection: Google Wire")
+	fmt.Println("==============================================")
 
-	// Load configuration
-	cfg := config.Load()
+	// Initialize application với Wire DI
+	diApp, err := di.InitializeApp()
+	if err != nil {
+		log.Fatalf("Failed to initialize application: %v", err)
+	}
 
 	// Create and run application
-	application := app.New(cfg)
+	runner := app.NewRunner(diApp)
 
-	if err := application.Run(); err != nil {
+	if err := runner.Run(); err != nil {
 		log.Fatalf("Application error: %v", err)
 	}
 }
