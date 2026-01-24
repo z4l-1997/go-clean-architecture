@@ -1,0 +1,76 @@
+# Docker Compose cho Restaurant Project
+# Polyglot Persistence: MySQL + MongoDB + Redis
+
+services:
+  # MySQL - Dữ liệu ổn định (User, KhachHang, NhanVien)
+  mysql:
+    image: mysql:8.4
+    container_name: restaurant_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-restaurant_db}
+      MYSQL_USER: ${MYSQL_USER:-restaurant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-restaurant123}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/mysql_schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --mysql-native-password=ON
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB - Dữ liệu động (MonAn, Order)
+  mongodb:
+    image: mongo:8.0
+    container_name: restaurant_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-restaurant}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-restaurant123}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-restaurant_db}
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Caching layer
+  redis:
+    image: redis:8-alpine
+    container_name: restaurant_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# Networks (optional - Docker Compose tự tạo default network)
+networks:
+  default:
+    name: restaurant_network

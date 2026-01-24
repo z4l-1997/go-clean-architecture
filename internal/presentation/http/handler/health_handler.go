@@ -1,0 +1,103 @@
+package handler
+
+import (
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"restaurant_project/internal/infrastructure/database"
+)
+
+// HealthHandler xử lý các health check endpoints
+type HealthHandler struct {
+	dbManager *database.DBManager
+	startTime time.Time
+}
+
+// NewHealthHandler tạo instance mới
+func NewHealthHandler(dbManager *database.DBManager) *HealthHandler {
+	return &HealthHandler{
+		dbManager: dbManager,
+		startTime: time.Now(),
+	}
+}
+
+// HealthResponse là response cho health check
+type HealthResponse struct {
+	Status    string                            `json:"status"`
+	Timestamp time.Time                         `json:"timestamp"`
+	Uptime    string                            `json:"uptime"`
+	Services  map[string]database.HealthStatus  `json:"services,omitempty"`
+}
+
+// LivenessResponse cho Kubernetes liveness probe
+type LivenessResponse struct {
+	Status string `json:"status"`
+}
+
+// ReadinessResponse cho Kubernetes readiness probe
+type ReadinessResponse struct {
+	Status string `json:"status"`
+	Ready  bool   `json:"ready"`
+}
+
+// Health xử lý GET /health - Full health check
+func (h *HealthHandler) Health(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	// Lấy health status của tất cả services
+	services := h.dbManager.HealthCheckAll(ctx)
+
+	// Xác định status tổng thể
+	status := "healthy"
+	for _, svc := range services {
+		if !svc.Healthy {
+			status = "unhealthy"
+			break
+		}
+	}
+
+	response := HealthResponse{
+		Status:    status,
+		Timestamp: time.Now(),
+		Uptime:    time.Since(h.startTime).String(),
+		Services:  services,
+	}
+
+	if status == "unhealthy" {
+		c.JSON(http.StatusServiceUnavailable, response)
+	} else {
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+// Liveness xử lý GET /health/live - Kubernetes liveness probe
+// Chỉ kiểm tra app có đang chạy không (không kiểm tra dependencies)
+func (h *HealthHandler) Liveness(c *gin.Context) {
+	response := LivenessResponse{
+		Status: "alive",
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// Readiness xử lý GET /health/ready - Kubernetes readiness probe
+// Kiểm tra app có sẵn sàng nhận traffic không
+func (h *HealthHandler) Readiness(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	ready := h.dbManager.IsAllHealthy(ctx)
+
+	response := ReadinessResponse{
+		Ready: ready,
+	}
+
+	if ready {
+		response.Status = "ready"
+		c.JSON(http.StatusOK, response)
+	} else {
+		response.Status = "not_ready"
+		c.JSON(http.StatusServiceUnavailable, response)
+	}
+}
