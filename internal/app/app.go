@@ -49,9 +49,36 @@ func (r *Runner) setupServer() {
 	// Tạo Gin router
 	r.router = gin.New()
 
-	// Thêm middleware - SỬ DỤNG STRUCTURED LOGGER
-	r.router.Use(logger.GinRecovery()) // Recovery với zap logging
-	r.router.Use(logger.GinLogger())   // Request logging với zap
+	// ============================================================
+	// MIDDLEWARE CHAIN - Thứ tự rất quan trọng!
+	// ============================================================
+
+	// 1. Recovery - catch panics trước tiên
+	r.router.Use(logger.GinRecovery())
+
+	// 2. Logger - log tất cả requests
+	r.router.Use(logger.GinLogger())
+
+	// 3. Security Headers - thêm security headers sớm
+	r.router.Use(r.app.Middlewares.SecurityHeaders)
+
+	// 4. CORS - xử lý preflight requests
+	r.router.Use(r.app.Middlewares.CORS)
+
+	// 5. Rate Limit - throttle requests sớm để bảo vệ resources
+	r.router.Use(r.app.Middlewares.RateLimit)
+
+	// 6. Body Size Limit - kiểm tra kích thước request
+	r.router.Use(r.app.Middlewares.BodySizeLimit)
+
+	// 7. Timeout - giới hạn thời gian xử lý request
+	r.router.Use(r.app.Middlewares.Timeout)
+
+	// 8. Gzip - nén response (cuối cùng trong chain)
+	r.router.Use(r.app.Middlewares.Gzip)
+
+	// 9. Error Handler - catch errors từ handlers
+	r.router.Use(r.app.Middlewares.ErrorHandler)
 
 	// Đăng ký routes
 	r.registerRoutes(r.router)

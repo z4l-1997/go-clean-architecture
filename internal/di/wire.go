@@ -14,6 +14,15 @@ import (
 )
 
 // ============================================================
+// Middleware Provider Set
+// ============================================================
+
+// MiddlewareSet chứa các providers cho Middleware layer
+var MiddlewareSet = wire.NewSet(
+	providers.ProvideMiddlewareCollection,
+)
+
+// ============================================================
 // Provider Sets - Nhóm các providers theo layer
 // ============================================================
 
@@ -65,6 +74,7 @@ type App struct {
 	MonAnHandler   *handler.MonAnHandler
 	HealthHandler  *handler.HealthHandler
 	SwaggerHandler *handler.SwaggerHandler
+	Middlewares    *providers.MiddlewareCollection
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection
@@ -84,6 +94,7 @@ func InitializeApp() (*App, error) {
 		RepositorySet,
 		UseCaseSet,
 		HandlerSet,
+		MiddlewareSet,
 		wire.Struct(new(App), "*"),
 	)
 	return nil, nil

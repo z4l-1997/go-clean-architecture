@@ -38,12 +38,14 @@ func InitializeApp() (*App, error) {
 	monAnHandler := providers.ProvideMonAnHandler(monAnUseCase)
 	healthHandler := providers.ProvideHealthHandler(dbManager)
 	swaggerHandler := providers.ProvideSwaggerHandler()
+	middlewareCollection := providers.ProvideMiddlewareCollection(config)
 	app := &App{
 		Config:         config,
 		DBManager:      dbManager,
 		MonAnHandler:   monAnHandler,
 		HealthHandler:  healthHandler,
 		SwaggerHandler: swaggerHandler,
+		Middlewares:    middlewareCollection,
 		MongoConn:      mongoDBConnection,
 		RedisConn:      redisConnection,
 	}
@@ -51,6 +53,9 @@ func InitializeApp() (*App, error) {
 }
 
 // wire.go:
+
+// MiddlewareSet chứa các providers cho Middleware layer
+var MiddlewareSet = wire.NewSet(providers.ProvideMiddlewareCollection)
 
 // ConfigSet chứa các providers cho Config layer
 var ConfigSet = wire.NewSet(providers.ProvideConfig, providers.ProvideMongoDBConfig, providers.ProvideRedisConfig, providers.ProvideServerConfig)
@@ -74,6 +79,7 @@ type App struct {
 	MonAnHandler   *handler.MonAnHandler
 	HealthHandler  *handler.HealthHandler
 	SwaggerHandler *handler.SwaggerHandler
+	Middlewares    *providers.MiddlewareCollection
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection

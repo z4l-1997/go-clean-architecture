@@ -33,12 +33,19 @@ func main() {
 	// 1. Load config TRƯỚC
 	cfg := config.Load()
 
-	// 2. Khởi tạo Structured Logger
+	// 2. Khởi tạo Structured Logger với File Rotation
 	if err := logger.Init(logger.Config{
 		Level:       cfg.Log.Level,
 		Environment: cfg.Log.Environment,
 		ServiceName: "restaurant-api",
 		Version:     "2.0.0",
+		// File logging config
+		EnableFileLog: cfg.Log.EnableFileLog,
+		LogFilePath:   cfg.Log.LogFilePath,
+		MaxSizeMB:     cfg.Log.MaxSizeMB,
+		MaxBackups:    cfg.Log.MaxBackups,
+		MaxAgeDays:    cfg.Log.MaxAgeDays,
+		CompressLog:   cfg.Log.CompressLog,
 	}); err != nil {
 		panic("Failed to initialize logger: " + err.Error())
 	}
