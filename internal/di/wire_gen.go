@@ -11,6 +11,7 @@ import (
 	"restaurant_project/internal/di/providers"
 	"restaurant_project/internal/infrastructure/config"
 	"restaurant_project/internal/infrastructure/database"
+	"restaurant_project/internal/infrastructure/migration"
 	"restaurant_project/internal/presentation/http/handler"
 )
 
@@ -30,6 +31,12 @@ func InitializeApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	db := providers.ProvideMySQLDB(mySQLConnection)
+	mySQLMigrator := providers.ProvideMySQLMigrator(db, mySQLConfig)
+	migrationManager, err := providers.ProvideMigrationManager(config, mySQLMigrator)
+	if err != nil {
+		return nil, err
+	}
 	database := providers.ProvideMongoDB(mongoDBConnection)
 	monAnMongoRepo := providers.ProvideMonAnMongoRepo(database)
 	client := providers.ProvideRedisClient(redisConnection)
@@ -40,7 +47,6 @@ func InitializeApp() (*App, error) {
 	monAnHandler := providers.ProvideMonAnHandler(monAnUseCase)
 	healthHandler := providers.ProvideHealthHandler(dbManager)
 	swaggerHandler := providers.ProvideSwaggerHandler()
-	db := providers.ProvideMySQLDB(mySQLConnection)
 	userMySQLRepo := providers.ProvideUserMySQLRepo(db)
 	iUserRepository := providers.ProvideUserRepository(userMySQLRepo)
 	userUseCase := providers.ProvideUserUseCase(iUserRepository)
@@ -54,17 +60,18 @@ func InitializeApp() (*App, error) {
 	authHandler := providers.ProvideAuthHandler(authUseCase)
 	middlewareCollection := providers.ProvideMiddlewareCollection(config, jwtAuthMiddleware)
 	app := &App{
-		Config:         config,
-		DBManager:      dbManager,
-		MonAnHandler:   monAnHandler,
-		HealthHandler:  healthHandler,
-		SwaggerHandler: swaggerHandler,
-		UserHandler:    userHandler,
-		AuthHandler:    authHandler,
-		Middlewares:    middlewareCollection,
-		MongoConn:      mongoDBConnection,
-		RedisConn:      redisConnection,
-		MySQLConn:      mySQLConnection,
+		Config:           config,
+		DBManager:        dbManager,
+		MigrationManager: migrationManager,
+		MonAnHandler:     monAnHandler,
+		HealthHandler:    healthHandler,
+		SwaggerHandler:   swaggerHandler,
+		UserHandler:      userHandler,
+		AuthHandler:      authHandler,
+		Middlewares:      middlewareCollection,
+		MongoConn:        mongoDBConnection,
+		RedisConn:        redisConnection,
+		MySQLConn:        mySQLConnection,
 	}
 	return app, nil
 }
@@ -76,6 +83,9 @@ var ServiceSet = wire.NewSet(providers.ProvideLoginAttemptService, providers.Pro
 
 // MiddlewareSet chứa các providers cho Middleware layer
 var MiddlewareSet = wire.NewSet(providers.ProvideJWTAuth, providers.ProvideMiddlewareCollection)
+
+// MigrationSet chứa các providers cho Migration layer
+var MigrationSet = wire.NewSet(providers.ProvideMySQLMigrator, providers.ProvideMigrationManager)
 
 // ConfigSet chứa các providers cho Config layer
 var ConfigSet = wire.NewSet(providers.ProvideConfig, providers.ProvideMongoDBConfig, providers.ProvideRedisConfig, providers.ProvideServerConfig, providers.ProvideMySQLConfig)
@@ -94,14 +104,15 @@ var HandlerSet = wire.NewSet(providers.ProvideMonAnHandler, providers.ProvideHea
 
 // App chứa tất cả dependencies đã được inject
 type App struct {
-	Config         *config.Config
-	DBManager      *database.DBManager
-	MonAnHandler   *handler.MonAnHandler
-	HealthHandler  *handler.HealthHandler
-	SwaggerHandler *handler.SwaggerHandler
-	UserHandler    *handler.UserHandler
-	AuthHandler    *handler.AuthHandler
-	Middlewares    *providers.MiddlewareCollection
+	Config           *config.Config
+	DBManager        *database.DBManager
+	MigrationManager *migration.MigrationManager
+	MonAnHandler     *handler.MonAnHandler
+	HealthHandler    *handler.HealthHandler
+	SwaggerHandler   *handler.SwaggerHandler
+	UserHandler      *handler.UserHandler
+	AuthHandler      *handler.AuthHandler
+	Middlewares      *providers.MiddlewareCollection
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection

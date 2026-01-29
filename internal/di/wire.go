@@ -10,6 +10,7 @@ import (
 	"restaurant_project/internal/di/providers"
 	"restaurant_project/internal/infrastructure/config"
 	"restaurant_project/internal/infrastructure/database"
+	"restaurant_project/internal/infrastructure/migration"
 	"restaurant_project/internal/presentation/http/handler"
 )
 
@@ -33,6 +34,12 @@ var ServiceSet = wire.NewSet(
 var MiddlewareSet = wire.NewSet(
 	providers.ProvideJWTAuth,
 	providers.ProvideMiddlewareCollection,
+)
+
+// MigrationSet chứa các providers cho Migration layer
+var MigrationSet = wire.NewSet(
+	providers.ProvideMySQLMigrator,
+	providers.ProvideMigrationManager,
 )
 
 // ============================================================
@@ -91,14 +98,15 @@ var HandlerSet = wire.NewSet(
 
 // App chứa tất cả dependencies đã được inject
 type App struct {
-	Config         *config.Config
-	DBManager      *database.DBManager
-	MonAnHandler   *handler.MonAnHandler
-	HealthHandler  *handler.HealthHandler
-	SwaggerHandler *handler.SwaggerHandler
-	UserHandler    *handler.UserHandler
-	AuthHandler    *handler.AuthHandler
-	Middlewares    *providers.MiddlewareCollection
+	Config           *config.Config
+	DBManager        *database.DBManager
+	MigrationManager *migration.MigrationManager
+	MonAnHandler     *handler.MonAnHandler
+	HealthHandler    *handler.HealthHandler
+	SwaggerHandler   *handler.SwaggerHandler
+	UserHandler      *handler.UserHandler
+	AuthHandler      *handler.AuthHandler
+	Middlewares      *providers.MiddlewareCollection
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection
@@ -116,6 +124,7 @@ func InitializeApp() (*App, error) {
 	wire.Build(
 		ConfigSet,
 		DatabaseSet,
+		MigrationSet,
 		ServiceSet,
 		RepositorySet,
 		UseCaseSet,

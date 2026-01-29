@@ -9,6 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.7.0
 	github.com/joho/godotenv v1.5.1
@@ -20,7 +21,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.7
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.47.0
-	golang.org/x/time v0.5.0
+	golang.org/x/time v0.12.0
 )
 
 require (
@@ -52,7 +53,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/strftime v1.1.1 // indirect

@@ -15,7 +15,13 @@ type Config struct {
 	MySQL      MySQLConfig
 	MongoDB    MongoDBConfig
 	Redis      RedisConfig
+	Migration  MigrationConfig
 	Middleware MiddlewareConfig
+}
+
+// MigrationConfig cấu hình cho hệ thống migration tự động
+type MigrationConfig struct {
+	AutoMigrate bool // Tự động chạy migration khi startup
 }
 
 // MiddlewareConfig chứa cấu hình cho tất cả middleware
@@ -199,6 +205,9 @@ func Load() *Config {
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       getEnvAsInt("REDIS_DB", 0),
 		},
+		Migration: MigrationConfig{
+			AutoMigrate: getEnvAsBool("MIGRATION_AUTO_MIGRATE", true),
+		},
 		Middleware: MiddlewareConfig{
 			CORS: CORSConfig{
 				Enabled:      getEnvAsBool("CORS_ENABLED", true),
@@ -265,7 +274,7 @@ func Load() *Config {
 func (c *MySQLConfig) DSN() string {
 	return c.Username + ":" + c.Password +
 		"@tcp(" + c.Host + ":" + strconv.Itoa(c.Port) + ")/" +
-		c.Database + "?parseTime=true&charset=utf8mb4&collation=utf8mb4_unicode_ci"
+		c.Database + "?parseTime=true&charset=utf8mb4&collation=utf8mb4_unicode_ci&multiStatements=true"
 }
 
 // getEnv lấy giá trị từ env, nếu không có thì trả về defaultValue
