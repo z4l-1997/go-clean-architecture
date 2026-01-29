@@ -10,19 +10,19 @@ import (
 
 // Role constants
 const (
-	RoleAdmin   = "admin"
-	RoleManager = "manager"
-	RoleStaff   = "staff"
-	RoleUser    = "user"
+	RoleAdmin    = "admin"
+	RoleManager  = "manager"
+	RoleStaff    = "staff"
+	RoleCustomer = "customer"
 )
 
 // roleHierarchy định nghĩa thứ tự quyền hạn
 // Số càng cao = quyền càng lớn
 var roleHierarchy = map[string]int{
-	RoleUser:    1,
-	RoleStaff:   2,
-	RoleManager: 3,
-	RoleAdmin:   4,
+	RoleCustomer: 1,
+	RoleStaff:    2,
+	RoleManager:  3,
+	RoleAdmin:    4,
 }
 
 // RequireAuth middleware yêu cầu user phải đăng nhập

@@ -8,7 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 
+	"restaurant_project/internal/domain/service"
 	"restaurant_project/internal/infrastructure/config"
 	"restaurant_project/pkg/logger"
 )
@@ -28,16 +30,24 @@ type UserClaims struct {
 	Email  string `json:"email,omitempty"`
 }
 
+// TokenInfo chứa thông tin token được tạo (dùng để track)
+type TokenInfo struct {
+	Token string        // JWT token string
+	JTI   string        // JWT ID (unique identifier)
+	TTL   time.Duration // Time to live
+}
+
 // JWTAuthMiddleware quản lý JWT authentication
 type JWTAuthMiddleware struct {
-	secretKey       []byte
-	accessTokenTTL  time.Duration
-	refreshTokenTTL time.Duration
-	enabled         bool
+	secretKey        []byte
+	accessTokenTTL   time.Duration
+	refreshTokenTTL  time.Duration
+	enabled          bool
+	blacklistService service.TokenBlacklistService
 }
 
 // NewJWTAuth tạo JWTAuthMiddleware mới
-func NewJWTAuth(cfg config.JWTConfig) *JWTAuthMiddleware {
+func NewJWTAuth(cfg config.JWTConfig, blacklistService service.TokenBlacklistService) *JWTAuthMiddleware {
 	accessTTL, _ := time.ParseDuration(cfg.AccessTokenTTL)
 	if accessTTL == 0 {
 		accessTTL = 15 * time.Minute
@@ -49,17 +59,30 @@ func NewJWTAuth(cfg config.JWTConfig) *JWTAuthMiddleware {
 	}
 
 	return &JWTAuthMiddleware{
-		secretKey:       []byte(cfg.SecretKey),
-		accessTokenTTL:  accessTTL,
-		refreshTokenTTL: refreshTTL,
-		enabled:         cfg.Enabled,
+		secretKey:        []byte(cfg.SecretKey),
+		accessTokenTTL:   accessTTL,
+		refreshTokenTTL:  refreshTTL,
+		enabled:          cfg.Enabled,
+		blacklistService: blacklistService,
 	}
 }
 
-// GenerateAccessToken tạo access token mới
+// GenerateAccessToken tạo access token mới với JTI để support blacklist
 func (j *JWTAuthMiddleware) GenerateAccessToken(userID, role, email string) (string, error) {
+	tokenInfo, err := j.GenerateAccessTokenWithInfo(userID, role, email)
+	if err != nil {
+		return "", err
+	}
+	return tokenInfo.Token, nil
+}
+
+// GenerateAccessTokenWithInfo tạo access token và trả về đầy đủ thông tin (bao gồm JTI)
+func (j *JWTAuthMiddleware) GenerateAccessTokenWithInfo(userID, role, email string) (*TokenInfo, error) {
+	jti := uuid.New().String()
+
 	claims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti, // JTI cho token blacklist
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.accessTokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "restaurant-api",
@@ -70,12 +93,33 @@ func (j *JWTAuthMiddleware) GenerateAccessToken(userID, role, email string) (str
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(j.secretKey)
+	tokenString, err := token.SignedString(j.secretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenInfo{
+		Token: tokenString,
+		JTI:   jti,
+		TTL:   j.accessTokenTTL,
+	}, nil
 }
 
-// GenerateRefreshToken tạo refresh token mới
+// GenerateRefreshToken tạo refresh token mới với JTI
 func (j *JWTAuthMiddleware) GenerateRefreshToken(userID string) (string, error) {
+	tokenInfo, err := j.GenerateRefreshTokenWithInfo(userID)
+	if err != nil {
+		return "", err
+	}
+	return tokenInfo.Token, nil
+}
+
+// GenerateRefreshTokenWithInfo tạo refresh token và trả về đầy đủ thông tin (bao gồm JTI)
+func (j *JWTAuthMiddleware) GenerateRefreshTokenWithInfo(userID string) (*TokenInfo, error) {
+	jti := uuid.New().String()
+
 	claims := jwt.RegisteredClaims{
+		ID:        jti, // JTI cho token blacklist
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.refreshTokenTTL)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		Subject:   userID,
@@ -83,7 +127,16 @@ func (j *JWTAuthMiddleware) GenerateRefreshToken(userID string) (string, error) 
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(j.secretKey)
+	tokenString, err := token.SignedString(j.secretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenInfo{
+		Token: tokenString,
+		JTI:   jti,
+		TTL:   j.refreshTokenTTL,
+	}, nil
 }
 
 // ValidateToken xác thực và parse JWT token
@@ -102,6 +155,28 @@ func (j *JWTAuthMiddleware) ValidateToken(tokenString string) (*UserClaims, erro
 	claims, ok := token.Claims.(*UserClaims)
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid token")
+	}
+
+	return claims, nil
+}
+
+// ParseTokenUnverifiedExpiry parse JWT token mà không check expiry
+// Dùng khi cần lấy JTI từ access token đã hết hạn (ví dụ: khi refresh)
+func (j *JWTAuthMiddleware) ParseTokenIgnoreExpiry(tokenString string) (*UserClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return j.secretKey, nil
+	}, jwt.WithoutClaimsValidation())
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*UserClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
 	}
 
 	return claims, nil
@@ -147,6 +222,19 @@ func (j *JWTAuthMiddleware) Middleware() gin.HandlerFunc {
 				"request_id": logger.GetRequestID(c),
 			})
 			return
+		}
+
+		// Check token blacklist (nếu token đã logout)
+		if j.blacklistService != nil && claims.ID != "" {
+			isBlacklisted, err := j.blacklistService.IsBlacklisted(c.Request.Context(), claims.ID)
+			if err == nil && isBlacklisted {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"error":      "Token has been revoked",
+					"code":       "TOKEN_REVOKED",
+					"request_id": logger.GetRequestID(c),
+				})
+				return
+			}
 		}
 
 		// Lưu claims vào context
@@ -218,4 +306,57 @@ func GetClaims(c *gin.Context) (*UserClaims, bool) {
 		return nil, false
 	}
 	return claims.(*UserClaims), true
+}
+
+// ExtractTokenFromHeader lấy token string từ Authorization header
+func ExtractTokenFromHeader(c *gin.Context) (string, bool) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return "", false
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return "", false
+	}
+
+	return parts[1], true
+}
+
+// GetTokenRemainingTime tính thời gian còn lại của token (cho blacklist TTL)
+func (j *JWTAuthMiddleware) GetTokenRemainingTime(claims *UserClaims) time.Duration {
+	if claims.ExpiresAt == nil {
+		return 0
+	}
+
+	remaining := time.Until(claims.ExpiresAt.Time)
+	if remaining < 0 {
+		return 0
+	}
+
+	return remaining
+}
+
+// BlacklistToken thêm token vào blacklist
+func (j *JWTAuthMiddleware) BlacklistToken(c *gin.Context, claims *UserClaims) error {
+	if j.blacklistService == nil {
+		return nil
+	}
+
+	if claims.ID == "" {
+		return errors.New("token has no JTI")
+	}
+
+	ttl := j.GetTokenRemainingTime(claims)
+	if ttl <= 0 {
+		// Token đã hết hạn, không cần blacklist
+		return nil
+	}
+
+	return j.blacklistService.Blacklist(c.Request.Context(), claims.ID, ttl)
+}
+
+// GetBlacklistService trả về TokenBlacklistService (dùng cho AuthUseCase)
+func (j *JWTAuthMiddleware) GetBlacklistService() service.TokenBlacklistService {
+	return j.blacklistService
 }

@@ -22,14 +22,15 @@ const (
 // - Cần ACID transactions cho authentication
 // - Cần foreign key relationships với KhachHang, NhanVien
 type User struct {
-	ID           string    // UUID hoặc auto-increment ID
-	Username     string    // Tên đăng nhập (unique)
-	Email        string    // Email (unique)
-	PasswordHash string    // Mật khẩu đã hash (bcrypt)
-	Role         UserRole  // Vai trò trong hệ thống
-	IsActive     bool      // Tài khoản có hoạt động không
-	NgayTao      time.Time // Ngày tạo tài khoản
-	NgayCapNhat  time.Time // Ngày cập nhật cuối
+	ID              string    // UUID hoặc auto-increment ID
+	Username        string    // Tên đăng nhập (unique)
+	Email           string    // Email (unique)
+	PasswordHash    string    // Mật khẩu đã hash (bcrypt)
+	Role            UserRole  // Vai trò trong hệ thống
+	IsActive        bool      // Tài khoản có hoạt động không
+	IsEmailVerified bool      // Email đã được xác thực chưa
+	NgayTao         time.Time // Ngày tạo tài khoản
+	NgayCapNhat     time.Time // Ngày cập nhật cuối
 }
 
 // NewUser tạo một User mới với validation
@@ -46,14 +47,15 @@ func NewUser(id, username, email, passwordHash string, role UserRole) (*User, er
 
 	now := time.Now()
 	return &User{
-		ID:           id,
-		Username:     username,
-		Email:        email,
-		PasswordHash: passwordHash,
-		Role:         role,
-		IsActive:     true,
-		NgayTao:      now,
-		NgayCapNhat:  now,
+		ID:              id,
+		Username:        username,
+		Email:           email,
+		PasswordHash:    passwordHash,
+		Role:            role,
+		IsActive:        true,
+		IsEmailVerified: false, // Email chưa được xác thực khi mới tạo
+		NgayTao:         now,
+		NgayCapNhat:     now,
 	}, nil
 }
 
@@ -87,4 +89,10 @@ func (u *User) UpdatePassword(newPasswordHash string) error {
 	u.PasswordHash = newPasswordHash
 	u.NgayCapNhat = time.Now()
 	return nil
+}
+
+// VerifyEmail đánh dấu email đã được xác thực
+func (u *User) VerifyEmail() {
+	u.IsEmailVerified = true
+	u.NgayCapNhat = time.Now()
 }

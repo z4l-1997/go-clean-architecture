@@ -1,6 +1,9 @@
 package middleware
 
 import (
+	"log"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -18,8 +21,26 @@ func CORS(cfg config.CORSConfig) gin.HandlerFunc {
 		}
 	}
 
+	env := os.Getenv("ENVIRONMENT")
+	origins := cfg.AllowOrigins
+
+	// Production safety: warn nếu dùng localhost hoặc wildcard
+	if env == "production" {
+		for _, origin := range origins {
+			if origin == "*" {
+				log.Fatalf("[CORS] FATAL: AllowOrigins chứa '*' trong production. Set CORS_ALLOW_ORIGINS với domain cụ thể")
+			}
+			if strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1") {
+				log.Fatalf("[CORS] FATAL: AllowOrigins chứa '%s' trong production. Set CORS_ALLOW_ORIGINS với domain cụ thể (ví dụ: https://myapp.com)", origin)
+			}
+			if !strings.HasPrefix(origin, "https://") {
+				log.Printf("[CORS] WARNING: Origin '%s' không dùng HTTPS trong production", origin)
+			}
+		}
+	}
+
 	corsConfig := cors.Config{
-		AllowOrigins:     cfg.AllowOrigins,
+		AllowOrigins:     origins,
 		AllowMethods:     cfg.AllowMethods,
 		AllowHeaders:     cfg.AllowHeaders,
 		ExposeHeaders:    []string{"Content-Length", "Content-Type", "X-Request-ID"},

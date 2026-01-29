@@ -29,9 +29,9 @@ const (
 type HealthStatus struct {
 	Healthy   bool              `json:"healthy"`
 	State     ConnectionState   `json:"state"`
-	Latency   time.Duration     `json:"latency_ms"`
+	Latency   time.Duration     `json:"latency_ms" swaggertype:"integer"`
 	Message   string            `json:"message,omitempty"`
-	Details   map[string]any    `json:"details,omitempty"`
+	Details   map[string]any    `json:"details,omitempty" swaggertype:"object"`
 	CheckedAt time.Time         `json:"checked_at"`
 }
 

@@ -25,13 +25,13 @@ var _ repository.IUserRepository = (*UserMySQLRepo)(nil)
 
 // FindByID tìm user theo ID
 func (r *UserMySQLRepo) FindByID(ctx context.Context, id string) (*entity.User, error) {
-	query := `SELECT id, username, email, password_hash, role, is_active, ngay_tao, ngay_cap_nhat
+	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat
 			  FROM users WHERE id = ?`
 
 	user := &entity.User{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&user.ID, &user.Username, &user.Email, &user.PasswordHash,
-		&user.Role, &user.IsActive, &user.NgayTao, &user.NgayCapNhat,
+		&user.Role, &user.IsActive, &user.IsEmailVerified, &user.NgayTao, &user.NgayCapNhat,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -46,13 +46,13 @@ func (r *UserMySQLRepo) FindByID(ctx context.Context, id string) (*entity.User, 
 
 // FindByUsername tìm user theo username
 func (r *UserMySQLRepo) FindByUsername(ctx context.Context, username string) (*entity.User, error) {
-	query := `SELECT id, username, email, password_hash, role, is_active, ngay_tao, ngay_cap_nhat
+	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat
 			  FROM users WHERE username = ?`
 
 	user := &entity.User{}
 	err := r.db.QueryRowContext(ctx, query, username).Scan(
 		&user.ID, &user.Username, &user.Email, &user.PasswordHash,
-		&user.Role, &user.IsActive, &user.NgayTao, &user.NgayCapNhat,
+		&user.Role, &user.IsActive, &user.IsEmailVerified, &user.NgayTao, &user.NgayCapNhat,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -67,13 +67,13 @@ func (r *UserMySQLRepo) FindByUsername(ctx context.Context, username string) (*e
 
 // FindByEmail tìm user theo email
 func (r *UserMySQLRepo) FindByEmail(ctx context.Context, email string) (*entity.User, error) {
-	query := `SELECT id, username, email, password_hash, role, is_active, ngay_tao, ngay_cap_nhat
+	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat
 			  FROM users WHERE email = ?`
 
 	user := &entity.User{}
 	err := r.db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID, &user.Username, &user.Email, &user.PasswordHash,
-		&user.Role, &user.IsActive, &user.NgayTao, &user.NgayCapNhat,
+		&user.Role, &user.IsActive, &user.IsEmailVerified, &user.NgayTao, &user.NgayCapNhat,
 	)
 
 	if errors.Is(err, sql.ErrNoRows) {
@@ -88,7 +88,7 @@ func (r *UserMySQLRepo) FindByEmail(ctx context.Context, email string) (*entity.
 
 // FindAll lấy tất cả users
 func (r *UserMySQLRepo) FindAll(ctx context.Context) ([]*entity.User, error) {
-	query := `SELECT id, username, email, password_hash, role, is_active, ngay_tao, ngay_cap_nhat
+	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat
 			  FROM users ORDER BY ngay_tao DESC`
 
 	rows, err := r.db.QueryContext(ctx, query)
@@ -102,7 +102,7 @@ func (r *UserMySQLRepo) FindAll(ctx context.Context) ([]*entity.User, error) {
 		user := &entity.User{}
 		err := rows.Scan(
 			&user.ID, &user.Username, &user.Email, &user.PasswordHash,
-			&user.Role, &user.IsActive, &user.NgayTao, &user.NgayCapNhat,
+			&user.Role, &user.IsActive, &user.IsEmailVerified, &user.NgayTao, &user.NgayCapNhat,
 		)
 		if err != nil {
 			return nil, err
@@ -115,7 +115,7 @@ func (r *UserMySQLRepo) FindAll(ctx context.Context) ([]*entity.User, error) {
 
 // FindByRole lấy users theo role
 func (r *UserMySQLRepo) FindByRole(ctx context.Context, role entity.UserRole) ([]*entity.User, error) {
-	query := `SELECT id, username, email, password_hash, role, is_active, ngay_tao, ngay_cap_nhat
+	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat
 			  FROM users WHERE role = ? ORDER BY ngay_tao DESC`
 
 	rows, err := r.db.QueryContext(ctx, query, role)
@@ -129,7 +129,7 @@ func (r *UserMySQLRepo) FindByRole(ctx context.Context, role entity.UserRole) ([
 		user := &entity.User{}
 		err := rows.Scan(
 			&user.ID, &user.Username, &user.Email, &user.PasswordHash,
-			&user.Role, &user.IsActive, &user.NgayTao, &user.NgayCapNhat,
+			&user.Role, &user.IsActive, &user.IsEmailVerified, &user.NgayTao, &user.NgayCapNhat,
 		)
 		if err != nil {
 			return nil, err
@@ -142,19 +142,20 @@ func (r *UserMySQLRepo) FindByRole(ctx context.Context, role entity.UserRole) ([
 
 // Save lưu user mới hoặc cập nhật
 func (r *UserMySQLRepo) Save(ctx context.Context, user *entity.User) error {
-	query := `INSERT INTO users (id, username, email, password_hash, role, is_active, ngay_tao, ngay_cap_nhat)
-			  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	query := `INSERT INTO users (id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat)
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 			  ON DUPLICATE KEY UPDATE
 			  username = VALUES(username),
 			  email = VALUES(email),
 			  password_hash = VALUES(password_hash),
 			  role = VALUES(role),
 			  is_active = VALUES(is_active),
+			  is_email_verified = VALUES(is_email_verified),
 			  ngay_cap_nhat = VALUES(ngay_cap_nhat)`
 
 	_, err := r.db.ExecContext(ctx, query,
 		user.ID, user.Username, user.Email, user.PasswordHash,
-		user.Role, user.IsActive, user.NgayTao, user.NgayCapNhat,
+		user.Role, user.IsActive, user.IsEmailVerified, user.NgayTao, user.NgayCapNhat,
 	)
 
 	return err

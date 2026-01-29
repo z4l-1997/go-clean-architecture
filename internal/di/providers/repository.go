@@ -2,12 +2,14 @@
 package providers
 
 import (
+	"database/sql"
 	"time"
 
 	"restaurant_project/internal/domain/cache"
 	"restaurant_project/internal/domain/repository"
 	persistenceCache "restaurant_project/internal/infrastructure/persistence/cache"
 	"restaurant_project/internal/infrastructure/persistence/mongodb"
+	"restaurant_project/internal/infrastructure/persistence/mysql"
 
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -35,4 +37,14 @@ func ProvideCachedMonAnRepository(
 // ProvideMonAnRepository binds CachedMonAnRepository to IMonAnRepository interface
 func ProvideMonAnRepository(cached *persistenceCache.CachedMonAnRepository) repository.IMonAnRepository {
 	return cached
+}
+
+// ProvideUserMySQLRepo tạo User MySQL repository
+func ProvideUserMySQLRepo(db *sql.DB) *mysql.UserMySQLRepo {
+	return mysql.NewUserMySQLRepo(db)
+}
+
+// ProvideUserRepository binds UserMySQLRepo to IUserRepository interface
+func ProvideUserRepository(repo *mysql.UserMySQLRepo) repository.IUserRepository {
+	return repo
 }

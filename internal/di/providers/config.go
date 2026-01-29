@@ -24,3 +24,8 @@ func ProvideRedisConfig(cfg *config.Config) *config.RedisConfig {
 func ProvideServerConfig(cfg *config.Config) *config.ServerConfig {
 	return &cfg.Server
 }
+
+// ProvideMySQLConfig trích xuất MySQLConfig từ Config
+func ProvideMySQLConfig(cfg *config.Config) *config.MySQLConfig {
+	return &cfg.MySQL
+}

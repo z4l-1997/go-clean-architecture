@@ -3,6 +3,7 @@ package providers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -27,6 +28,7 @@ func ProvideRedisConnection(cfg *config.RedisConfig) *database.RedisConnection {
 func ProvideDBManager(
 	mongoConn *database.MongoDBConnection,
 	redisConn *database.RedisConnection,
+	mysqlConn *database.MySQLConnection,
 ) (*database.DBManager, error) {
 	fmt.Println("[1] Initializing Database Manager...")
 
@@ -35,6 +37,7 @@ func ProvideDBManager(
 	// Đăng ký connections
 	manager.Register("mongodb", mongoConn)
 	manager.Register("redis", redisConn)
+	manager.Register("mysql", mysqlConn)
 
 	fmt.Printf("    Registered %d database connections\n", manager.Count())
 
@@ -59,4 +62,14 @@ func ProvideMongoDB(conn *database.MongoDBConnection) *mongo.Database {
 // ProvideRedisClient trích xuất *redis.Client từ RedisConnection
 func ProvideRedisClient(conn *database.RedisConnection) *redis.Client {
 	return conn.Client()
+}
+
+// ProvideMySQLConnection tạo MySQL connection
+func ProvideMySQLConnection(cfg *config.MySQLConfig) *database.MySQLConnection {
+	return database.NewMySQLConnection(cfg)
+}
+
+// ProvideMySQLDB trích xuất *sql.DB từ MySQLConnection
+func ProvideMySQLDB(conn *database.MySQLConnection) *sql.DB {
+	return conn.DB()
 }

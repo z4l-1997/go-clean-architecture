@@ -24,7 +24,9 @@ func InitializeApp() (*App, error) {
 	mongoDBConnection := providers.ProvideMongoDBConnection(mongoDBConfig)
 	redisConfig := providers.ProvideRedisConfig(config)
 	redisConnection := providers.ProvideRedisConnection(redisConfig)
-	dbManager, err := providers.ProvideDBManager(mongoDBConnection, redisConnection)
+	mySQLConfig := providers.ProvideMySQLConfig(config)
+	mySQLConnection := providers.ProvideMySQLConnection(mySQLConfig)
+	dbManager, err := providers.ProvideDBManager(mongoDBConnection, redisConnection, mySQLConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -38,39 +40,57 @@ func InitializeApp() (*App, error) {
 	monAnHandler := providers.ProvideMonAnHandler(monAnUseCase)
 	healthHandler := providers.ProvideHealthHandler(dbManager)
 	swaggerHandler := providers.ProvideSwaggerHandler()
-	middlewareCollection := providers.ProvideMiddlewareCollection(config)
+	db := providers.ProvideMySQLDB(mySQLConnection)
+	userMySQLRepo := providers.ProvideUserMySQLRepo(db)
+	iUserRepository := providers.ProvideUserRepository(userMySQLRepo)
+	userUseCase := providers.ProvideUserUseCase(iUserRepository)
+	tokenBlacklistService := providers.ProvideTokenBlacklistService(client, config)
+	jwtAuthMiddleware := providers.ProvideJWTAuth(config, tokenBlacklistService)
+	userHandler := providers.ProvideUserHandler(userUseCase, jwtAuthMiddleware)
+	loginAttemptService := providers.ProvideLoginAttemptService(client, config)
+	emailVerificationService := providers.ProvideEmailVerificationService(client, config)
+	emailService := providers.ProvideEmailService(config)
+	authUseCase := providers.ProvideAuthUseCase(iUserRepository, jwtAuthMiddleware, loginAttemptService, emailVerificationService, emailService)
+	authHandler := providers.ProvideAuthHandler(authUseCase)
+	middlewareCollection := providers.ProvideMiddlewareCollection(config, jwtAuthMiddleware)
 	app := &App{
 		Config:         config,
 		DBManager:      dbManager,
 		MonAnHandler:   monAnHandler,
 		HealthHandler:  healthHandler,
 		SwaggerHandler: swaggerHandler,
+		UserHandler:    userHandler,
+		AuthHandler:    authHandler,
 		Middlewares:    middlewareCollection,
 		MongoConn:      mongoDBConnection,
 		RedisConn:      redisConnection,
+		MySQLConn:      mySQLConnection,
 	}
 	return app, nil
 }
 
 // wire.go:
 
+// ServiceSet chứa các providers cho Domain Service layer
+var ServiceSet = wire.NewSet(providers.ProvideLoginAttemptService, providers.ProvideTokenBlacklistService, providers.ProvideEmailVerificationService, providers.ProvideEmailService)
+
 // MiddlewareSet chứa các providers cho Middleware layer
-var MiddlewareSet = wire.NewSet(providers.ProvideMiddlewareCollection)
+var MiddlewareSet = wire.NewSet(providers.ProvideJWTAuth, providers.ProvideMiddlewareCollection)
 
 // ConfigSet chứa các providers cho Config layer
-var ConfigSet = wire.NewSet(providers.ProvideConfig, providers.ProvideMongoDBConfig, providers.ProvideRedisConfig, providers.ProvideServerConfig)
+var ConfigSet = wire.NewSet(providers.ProvideConfig, providers.ProvideMongoDBConfig, providers.ProvideRedisConfig, providers.ProvideServerConfig, providers.ProvideMySQLConfig)
 
 // DatabaseSet chứa các providers cho Database layer
-var DatabaseSet = wire.NewSet(providers.ProvideMongoDBConnection, providers.ProvideRedisConnection, providers.ProvideDBManager, providers.ProvideMongoDB, providers.ProvideRedisClient)
+var DatabaseSet = wire.NewSet(providers.ProvideMongoDBConnection, providers.ProvideRedisConnection, providers.ProvideMySQLConnection, providers.ProvideDBManager, providers.ProvideMongoDB, providers.ProvideRedisClient, providers.ProvideMySQLDB)
 
 // RepositorySet chứa các providers cho Repository layer
-var RepositorySet = wire.NewSet(providers.ProvideMonAnMongoRepo, providers.ProvideRedisCacheRepository, providers.ProvideCachedMonAnRepository, providers.ProvideMonAnRepository)
+var RepositorySet = wire.NewSet(providers.ProvideMonAnMongoRepo, providers.ProvideRedisCacheRepository, providers.ProvideCachedMonAnRepository, providers.ProvideMonAnRepository, providers.ProvideUserMySQLRepo, providers.ProvideUserRepository)
 
 // UseCaseSet chứa các providers cho UseCase layer
-var UseCaseSet = wire.NewSet(providers.ProvideMonAnUseCase)
+var UseCaseSet = wire.NewSet(providers.ProvideMonAnUseCase, providers.ProvideUserUseCase, providers.ProvideAuthUseCase)
 
 // HandlerSet chứa các providers cho Handler layer
-var HandlerSet = wire.NewSet(providers.ProvideMonAnHandler, providers.ProvideHealthHandler, providers.ProvideSwaggerHandler)
+var HandlerSet = wire.NewSet(providers.ProvideMonAnHandler, providers.ProvideHealthHandler, providers.ProvideSwaggerHandler, providers.ProvideUserHandler, providers.ProvideAuthHandler)
 
 // App chứa tất cả dependencies đã được inject
 type App struct {
@@ -79,9 +99,12 @@ type App struct {
 	MonAnHandler   *handler.MonAnHandler
 	HealthHandler  *handler.HealthHandler
 	SwaggerHandler *handler.SwaggerHandler
+	UserHandler    *handler.UserHandler
+	AuthHandler    *handler.AuthHandler
 	Middlewares    *providers.MiddlewareCollection
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection
 	RedisConn *database.RedisConnection
+	MySQLConn *database.MySQLConnection
 }

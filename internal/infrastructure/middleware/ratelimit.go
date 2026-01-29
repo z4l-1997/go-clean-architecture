@@ -82,3 +82,30 @@ func RateLimit(cfg config.RateLimitConfig) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// AuthRateLimit middleware với rate limit nghiêm ngặt hơn cho auth endpoints
+// Chống brute force attacks bằng cách giới hạn requests per second thấp hơn
+func AuthRateLimit(cfg config.AuthRateLimitConfig) gin.HandlerFunc {
+	if !cfg.Enabled {
+		return func(c *gin.Context) {
+			c.Next()
+		}
+	}
+
+	limiter := NewRateLimiter(cfg.RPS, cfg.Burst)
+
+	return func(c *gin.Context) {
+		clientIP := c.ClientIP()
+
+		if !limiter.Allow(clientIP) {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error":      "Too many authentication requests",
+				"code":       "AUTH_RATE_LIMIT_EXCEEDED",
+				"request_id": logger.GetRequestID(c),
+			})
+			return
+		}
+
+		c.Next()
+	}
+}

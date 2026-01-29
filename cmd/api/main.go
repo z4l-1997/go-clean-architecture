@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
 	"restaurant_project/internal/app"
@@ -30,6 +31,9 @@ import (
 )
 
 func main() {
+	// 0. Load .env file
+	godotenv.Load()
+
 	// 1. Load config TRƯỚC
 	cfg := config.Load()
 

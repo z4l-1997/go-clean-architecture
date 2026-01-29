@@ -20,13 +20,18 @@ type Config struct {
 
 // MiddlewareConfig chứa cấu hình cho tất cả middleware
 type MiddlewareConfig struct {
-	CORS      CORSConfig
-	RateLimit RateLimitConfig
-	JWT       JWTConfig
-	Timeout   TimeoutConfig
-	Gzip      GzipConfig
-	Security  SecurityConfig
-	BodyLimit BodyLimitConfig
+	CORS              CORSConfig
+	RateLimit         RateLimitConfig
+	AuthRateLimit     AuthRateLimitConfig
+	JWT               JWTConfig
+	Timeout           TimeoutConfig
+	Gzip              GzipConfig
+	Security          SecurityConfig
+	BodyLimit         BodyLimitConfig
+	AccountLockout    AccountLockoutConfig
+	TokenBlacklist    TokenBlacklistConfig
+	EmailVerification EmailVerificationConfig
+	Email             EmailConfig
 }
 
 // CORSConfig cấu hình Cross-Origin Resource Sharing
@@ -43,6 +48,14 @@ type RateLimitConfig struct {
 	Enabled bool    // Bật/tắt rate limiting
 	RPS     float64 // Requests per second
 	Burst   int     // Burst size
+}
+
+// AuthRateLimitConfig cấu hình rate limit riêng cho auth endpoints
+// Nghiêm ngặt hơn global rate limit để chống brute force
+type AuthRateLimitConfig struct {
+	Enabled bool    // Bật/tắt auth rate limiting
+	RPS     float64 // Requests per second (mặc định 5)
+	Burst   int     // Burst size (mặc định 10)
 }
 
 // JWTConfig cấu hình JWT Authentication
@@ -75,6 +88,31 @@ type SecurityConfig struct {
 type BodyLimitConfig struct {
 	Enabled bool  // Bật/tắt body size limit
 	MaxSize int64 // Kích thước tối đa (bytes)
+}
+
+// AccountLockoutConfig cấu hình khóa tài khoản sau nhiều lần login sai
+type AccountLockoutConfig struct {
+	Enabled         bool          // Bật/tắt account lockout
+	MaxAttempts     int           // Số lần thử tối đa trước khi khóa (mặc định 5)
+	LockoutDuration time.Duration // Thời gian khóa (mặc định 15 phút)
+}
+
+// TokenBlacklistConfig cấu hình token blacklist
+type TokenBlacklistConfig struct {
+	Enabled bool // Bật/tắt token blacklist (dùng Redis có sẵn)
+}
+
+// EmailVerificationConfig cấu hình xác thực email
+type EmailVerificationConfig struct {
+	Enabled     bool          // Bật/tắt email verification
+	TokenTTL    time.Duration // Thời gian sống của verification token (mặc định 24h)
+	CooldownTTL time.Duration // Thời gian chờ giữa các lần gửi lại (mặc định 60s)
+}
+
+// EmailConfig cấu hình gửi email
+type EmailConfig struct {
+	Enabled             bool   // Bật/tắt gửi email thật (false = console log)
+	VerificationBaseURL string // Base URL cho link xác thực (vd: http://localhost:3000)
 }
 
 // LogConfig cấu hình cho structured logger
@@ -195,6 +233,28 @@ func Load() *Config {
 			BodyLimit: BodyLimitConfig{
 				Enabled: getEnvAsBool("BODY_LIMIT_ENABLED", true),
 				MaxSize: getEnvAsInt64("BODY_LIMIT_MAX_SIZE", 1048576), // 1MB
+			},
+			AuthRateLimit: AuthRateLimitConfig{
+				Enabled: getEnvAsBool("AUTH_RATE_LIMIT_ENABLED", true),
+				RPS:     getEnvAsFloat("AUTH_RATE_LIMIT_RPS", 5),
+				Burst:   getEnvAsInt("AUTH_RATE_LIMIT_BURST", 10),
+			},
+			AccountLockout: AccountLockoutConfig{
+				Enabled:         getEnvAsBool("ACCOUNT_LOCKOUT_ENABLED", true),
+				MaxAttempts:     getEnvAsInt("ACCOUNT_LOCKOUT_MAX_ATTEMPTS", 5),
+				LockoutDuration: getEnvAsDuration("ACCOUNT_LOCKOUT_DURATION", 15*time.Minute),
+			},
+			TokenBlacklist: TokenBlacklistConfig{
+				Enabled: getEnvAsBool("TOKEN_BLACKLIST_ENABLED", true),
+			},
+			EmailVerification: EmailVerificationConfig{
+				Enabled:     getEnvAsBool("EMAIL_VERIFICATION_ENABLED", true),
+				TokenTTL:    getEnvAsDuration("EMAIL_VERIFICATION_TOKEN_TTL", 24*time.Hour),
+				CooldownTTL: getEnvAsDuration("EMAIL_VERIFICATION_COOLDOWN_TTL", 60*time.Second),
+			},
+			Email: EmailConfig{
+				Enabled:             getEnvAsBool("EMAIL_ENABLED", false),
+				VerificationBaseURL: getEnv("EMAIL_VERIFICATION_BASE_URL", "http://localhost:3000"),
 			},
 		},
 	}

@@ -6,6 +6,7 @@ import (
 
 	"restaurant_project/internal/application/usecase"
 	"restaurant_project/internal/infrastructure/database"
+	"restaurant_project/internal/infrastructure/middleware"
 	"restaurant_project/internal/presentation/http/handler"
 )
 
@@ -31,4 +32,17 @@ func ProvideHandlers(
 ) {
 	fmt.Println("[3] Initializing repositories and use cases...")
 	fmt.Println("    Repositories and handlers ready")
+}
+
+// ProvideUserHandler tạo User HTTP handler
+func ProvideUserHandler(
+	uc *usecase.UserUseCase,
+	jwtAuth *middleware.JWTAuthMiddleware,
+) *handler.UserHandler {
+	return handler.NewUserHandler(uc, jwtAuth)
+}
+
+// ProvideAuthHandler tạo Auth HTTP handler
+func ProvideAuthHandler(uc *usecase.AuthUseCase) *handler.AuthHandler {
+	return handler.NewAuthHandler(uc)
 }

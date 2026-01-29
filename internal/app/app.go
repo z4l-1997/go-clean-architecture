@@ -114,9 +114,26 @@ func (r *Runner) registerRoutes(router *gin.Engine) {
 	// API routes
 	api := router.Group("/api")
 	{
+		// Auth routes (PUBLIC - không cần JWT)
+		// Áp dụng Auth Rate Limit nghiêm ngặt hơn để chống brute force
+		authGroup := api.Group(r.app.AuthHandler.BasePath())
+		authGroup.Use(r.app.Middlewares.AuthRateLimit)
+		r.app.AuthHandler.RegisterRoutes(authGroup)
+
+		// Auth protected routes (cần JWT) - cho logout
+		authProtectedGroup := api.Group(r.app.AuthHandler.BasePath())
+		authProtectedGroup.Use(r.app.Middlewares.AuthRateLimit)
+		authProtectedGroup.Use(r.app.Middlewares.JWTAuth.Middleware())
+		r.app.AuthHandler.RegisterProtectedRoutes(authProtectedGroup)
+
 		// MonAn routes
 		monAnGroup := api.Group(r.app.MonAnHandler.BasePath())
 		r.app.MonAnHandler.RegisterRoutes(monAnGroup)
+
+		// User routes (PROTECTED - cần JWT)
+		userGroup := api.Group(r.app.UserHandler.BasePath())
+		userGroup.Use(r.app.Middlewares.JWTAuth.Middleware())
+		r.app.UserHandler.RegisterRoutes(userGroup)
 	}
 
 	logger.Debug("Routes registered successfully")
@@ -142,6 +159,17 @@ func (r *Runner) handleRoot(c *gin.Context) {
 			"PUT /api/mon-an/:id/giam-gia":  "Apply discount",
 			"PUT /api/mon-an/:id/het-hang":  "Mark as out of stock",
 			"DELETE /api/mon-an/:id":        "Delete dish",
+			"POST /api/auth/register":       "Register new customer",
+			"POST /api/auth/login":          "Login",
+			"POST /api/auth/refresh":        "Refresh access token",
+			"POST /api/auth/logout":         "Logout (revoke token) [Auth]",
+			"GET /api/users/me":             "Get current user [Auth]",
+			"PUT /api/users/me/password":    "Change password [Auth]",
+			"GET /api/users":                "List all users [Manager+]",
+			"POST /api/users":               "Create user [Manager+]",
+			"GET /api/users/:id":            "Get user by ID [Manager+]",
+			"PUT /api/users/:id":            "Update user [Manager+]",
+			"DELETE /api/users/:id":         "Deactivate user [Admin]",
 		},
 	})
 }

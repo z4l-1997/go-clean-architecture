@@ -14,11 +14,24 @@ import (
 )
 
 // ============================================================
+// Service Provider Set
+// ============================================================
+
+// ServiceSet chứa các providers cho Domain Service layer
+var ServiceSet = wire.NewSet(
+	providers.ProvideLoginAttemptService,
+	providers.ProvideTokenBlacklistService,
+	providers.ProvideEmailVerificationService,
+	providers.ProvideEmailService,
+)
+
+// ============================================================
 // Middleware Provider Set
 // ============================================================
 
 // MiddlewareSet chứa các providers cho Middleware layer
 var MiddlewareSet = wire.NewSet(
+	providers.ProvideJWTAuth,
 	providers.ProvideMiddlewareCollection,
 )
 
@@ -32,15 +45,18 @@ var ConfigSet = wire.NewSet(
 	providers.ProvideMongoDBConfig,
 	providers.ProvideRedisConfig,
 	providers.ProvideServerConfig,
+	providers.ProvideMySQLConfig,
 )
 
 // DatabaseSet chứa các providers cho Database layer
 var DatabaseSet = wire.NewSet(
 	providers.ProvideMongoDBConnection,
 	providers.ProvideRedisConnection,
+	providers.ProvideMySQLConnection,
 	providers.ProvideDBManager,
 	providers.ProvideMongoDB,
 	providers.ProvideRedisClient,
+	providers.ProvideMySQLDB,
 )
 
 // RepositorySet chứa các providers cho Repository layer
@@ -49,11 +65,15 @@ var RepositorySet = wire.NewSet(
 	providers.ProvideRedisCacheRepository,
 	providers.ProvideCachedMonAnRepository,
 	providers.ProvideMonAnRepository,
+	providers.ProvideUserMySQLRepo,
+	providers.ProvideUserRepository,
 )
 
 // UseCaseSet chứa các providers cho UseCase layer
 var UseCaseSet = wire.NewSet(
 	providers.ProvideMonAnUseCase,
+	providers.ProvideUserUseCase,
+	providers.ProvideAuthUseCase,
 )
 
 // HandlerSet chứa các providers cho Handler layer
@@ -61,6 +81,8 @@ var HandlerSet = wire.NewSet(
 	providers.ProvideMonAnHandler,
 	providers.ProvideHealthHandler,
 	providers.ProvideSwaggerHandler,
+	providers.ProvideUserHandler,
+	providers.ProvideAuthHandler,
 )
 
 // ============================================================
@@ -74,11 +96,14 @@ type App struct {
 	MonAnHandler   *handler.MonAnHandler
 	HealthHandler  *handler.HealthHandler
 	SwaggerHandler *handler.SwaggerHandler
+	UserHandler    *handler.UserHandler
+	AuthHandler    *handler.AuthHandler
 	Middlewares    *providers.MiddlewareCollection
 
 	// Internal connections (để cleanup)
 	MongoConn *database.MongoDBConnection
 	RedisConn *database.RedisConnection
+	MySQLConn *database.MySQLConnection
 }
 
 // ============================================================
@@ -91,6 +116,7 @@ func InitializeApp() (*App, error) {
 	wire.Build(
 		ConfigSet,
 		DatabaseSet,
+		ServiceSet,
 		RepositorySet,
 		UseCaseSet,
 		HandlerSet,

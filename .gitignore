@@ -50,3 +50,5 @@ debug
 __debug_bin*
 
 .my-docs/
+.claude/
+CLAUDE.md

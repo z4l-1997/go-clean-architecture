@@ -1,31 +1,6 @@
 basePath: /
 definitions:
-  internal_presentation_http_handler.HealthResponse:
-    properties:
-      services:
-        additionalProperties:
-          $ref: '#/definitions/restaurant_project_internal_infrastructure_database.HealthStatus'
-        type: object
-      status:
-        type: string
-      timestamp:
-        type: string
-      uptime:
-        type: string
-    type: object
-  internal_presentation_http_handler.LivenessResponse:
-    properties:
-      status:
-        type: string
-    type: object
-  internal_presentation_http_handler.ReadinessResponse:
-    properties:
-      ready:
-        type: boolean
-      status:
-        type: string
-    type: object
-  restaurant_project_internal_infrastructure_database.ConnectionState:
+  database.ConnectionState:
     enum:
     - disconnected
     - connecting
@@ -37,23 +12,22 @@ definitions:
     - StateConnecting
     - StateConnected
     - StateError
-  restaurant_project_internal_infrastructure_database.HealthStatus:
+  database.HealthStatus:
     properties:
       checked_at:
         type: string
       details:
-        additionalProperties: {}
         type: object
       healthy:
         type: boolean
       latency_ms:
-        $ref: '#/definitions/time.Duration'
+        type: integer
       message:
         type: string
       state:
-        $ref: '#/definitions/restaurant_project_internal_infrastructure_database.ConnectionState'
+        $ref: '#/definitions/database.ConnectionState'
     type: object
-  restaurant_project_internal_presentation_http_dto.APIResponse:
+  dto.APIResponse:
     properties:
       data:
         description: Dữ liệu trả về (nếu có)
@@ -70,21 +44,109 @@ definitions:
         example: true
         type: boolean
     type: object
-  restaurant_project_internal_presentation_http_dto.ApDungGiamGiaRequest:
+  dto.ActiveSessionsResponse:
+    properties:
+      active_sessions:
+        example: 3
+        type: integer
+    type: object
+  dto.ApDungGiamGiaRequest:
     properties:
       phan_tram:
         description: Phần trăm giảm giá (0-100)
         example: 10
         type: integer
     type: object
-  restaurant_project_internal_presentation_http_dto.CapNhatGiaRequest:
+  dto.AuthResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+      expires_in:
+        description: seconds
+        example: 900
+        type: integer
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+      token_type:
+        example: Bearer
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.CapNhatGiaRequest:
     properties:
       gia:
         description: Giá mới (VND)
         example: 55000
         type: integer
     type: object
-  restaurant_project_internal_presentation_http_dto.MonAnResponse:
+  dto.ChangePasswordRequest:
+    properties:
+      new_password:
+        example: newpass123
+        maxLength: 100
+        minLength: 6
+        type: string
+      old_password:
+        example: oldpass123
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  dto.CreateUserRequest:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: password123
+        maxLength: 100
+        minLength: 6
+        type: string
+      role:
+        enum:
+        - admin
+        - manager
+        - staff
+        - customer
+        example: staff
+        type: string
+      username:
+        example: john_doe
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - role
+    - username
+    type: object
+  dto.LoginRequest:
+    properties:
+      password:
+        example: password123
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  dto.LogoutAllResponse:
+    properties:
+      message:
+        example: Đã đăng xuất khỏi tất cả thiết bị
+        type: string
+      revoked_sessions:
+        example: 3
+        type: integer
+    type: object
+  dto.MonAnResponse:
     properties:
       co_the_ban:
         description: Có thể bán không (business logic)
@@ -127,7 +189,63 @@ definitions:
         example: Phở bò tái
         type: string
     type: object
-  restaurant_project_internal_presentation_http_dto.ThemMonRequest:
+  dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.RefreshTokenResponse:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+      expires_in:
+        description: seconds
+        example: 900
+        type: integer
+      token_type:
+        example: Bearer
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: password123
+        maxLength: 100
+        minLength: 6
+        type: string
+      username:
+        example: john_doe
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  dto.ResendCooldownResponse:
+    properties:
+      message:
+        example: Vui lòng đợi trước khi gửi lại
+        type: string
+      remaining_seconds:
+        example: 45
+        type: integer
+    type: object
+  dto.ResendVerificationResponse:
+    properties:
+      message:
+        example: Email xác thực đã được gửi lại
+        type: string
+    type: object
+  dto.ThemMonRequest:
     properties:
       gia:
         description: Giá món (VND)
@@ -142,27 +260,81 @@ definitions:
         example: Phở bò tái
         type: string
     type: object
-  time.Duration:
-    enum:
-    - -9223372036854775808
-    - 9223372036854775807
-    - 1
-    - 1000
-    - 1000000
-    - 1000000000
-    - 60000000000
-    - 3600000000000
-    format: int64
-    type: integer
-    x-enum-varnames:
-    - minDuration
-    - maxDuration
-    - Nanosecond
-    - Microsecond
-    - Millisecond
-    - Second
-    - Minute
-    - Hour
+  dto.UpdateUserRequest:
+    properties:
+      email:
+        example: newemail@example.com
+        type: string
+      is_active:
+        example: true
+        type: boolean
+    type: object
+  dto.UserResponse:
+    properties:
+      created_at:
+        example: 24/01/2026 10:00
+        type: string
+      email:
+        example: john@example.com
+        type: string
+      id:
+        example: uuid-123
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      is_email_verified:
+        example: true
+        type: boolean
+      role:
+        example: staff
+        type: string
+      updated_at:
+        example: 24/01/2026 10:30
+        type: string
+      username:
+        example: john_doe
+        type: string
+    type: object
+  dto.VerifyEmailRequest:
+    properties:
+      token:
+        example: abc123def456...
+        type: string
+    required:
+    - token
+    type: object
+  dto.VerifyEmailResponse:
+    properties:
+      message:
+        example: Email đã được xác thực thành công
+        type: string
+    type: object
+  handler.HealthResponse:
+    properties:
+      services:
+        additionalProperties:
+          $ref: '#/definitions/database.HealthStatus'
+        type: object
+      status:
+        type: string
+      timestamp:
+        type: string
+      uptime:
+        type: string
+    type: object
+  handler.LivenessResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  handler.ReadinessResponse:
+    properties:
+      ready:
+        type: boolean
+      status:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -176,6 +348,252 @@ info:
   title: Restaurant Menu API
   version: 2.0.0
 paths:
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Đăng nhập và nhận tokens
+      parameters:
+      - description: Thông tin đăng nhập
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Đăng nhập
+      tags:
+      - Auth
+  /api/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Đăng xuất và revoke access token hiện tại
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Đăng xuất
+      tags:
+      - Auth
+  /api/auth/logout-all:
+    post:
+      consumes:
+      - application/json
+      description: Đăng xuất và revoke tất cả tokens của user (tất cả devices)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.LogoutAllResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Đăng xuất tất cả thiết bị
+      tags:
+      - Auth
+  /api/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Làm mới access token từ refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RefreshTokenResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Làm mới access token
+      tags:
+      - Auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Đăng ký tài khoản mới (Customer)
+      parameters:
+      - description: Thông tin đăng ký
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Đăng ký tài khoản
+      tags:
+      - Auth
+  /api/auth/resend-verification:
+    post:
+      consumes:
+      - application/json
+      description: Gửi lại email xác thực cho user (cần đăng nhập)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ResendVerificationResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ResendCooldownResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Gửi lại email xác thực
+      tags:
+      - Auth
+  /api/auth/sessions:
+    get:
+      description: Lấy số lượng thiết bị đang đăng nhập
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ActiveSessionsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Lấy số session active
+      tags:
+      - Auth
+  /api/auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Xác thực email của user với verification token
+      parameters:
+      - description: Verification token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VerifyEmailResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Xác thực email
+      tags:
+      - Auth
   /api/mon-an:
     get:
       consumes:
@@ -194,17 +612,17 @@ paths:
           description: Lấy menu thành công
           schema:
             allOf:
-            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - $ref: '#/definitions/dto.APIResponse'
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+                    $ref: '#/definitions/dto.MonAnResponse'
                   type: array
               type: object
         "500":
           description: Lỗi server
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
       summary: Xem menu
       tags:
       - MonAn
@@ -218,7 +636,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.ThemMonRequest'
+          $ref: '#/definitions/dto.ThemMonRequest'
       produces:
       - application/json
       responses:
@@ -226,15 +644,15 @@ paths:
           description: Thêm món thành công
           schema:
             allOf:
-            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - $ref: '#/definitions/dto.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+                  $ref: '#/definitions/dto.MonAnResponse'
               type: object
         "400":
           description: Dữ liệu không hợp lệ
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
       summary: Thêm món ăn mới
       tags:
       - MonAn
@@ -255,11 +673,11 @@ paths:
         "200":
           description: Xóa món thành công
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
         "400":
           description: Không thể xóa món
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
       summary: Xóa món ăn
       tags:
       - MonAn
@@ -280,19 +698,19 @@ paths:
           description: Tìm món thành công
           schema:
             allOf:
-            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - $ref: '#/definitions/dto.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+                  $ref: '#/definitions/dto.MonAnResponse'
               type: object
         "400":
           description: ID không hợp lệ
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
         "404":
           description: Không tìm thấy món
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
       summary: Tìm món theo ID
       tags:
       - MonAn
@@ -312,7 +730,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.CapNhatGiaRequest'
+          $ref: '#/definitions/dto.CapNhatGiaRequest'
       produces:
       - application/json
       responses:
@@ -320,15 +738,15 @@ paths:
           description: Cập nhật giá thành công
           schema:
             allOf:
-            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - $ref: '#/definitions/dto.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+                  $ref: '#/definitions/dto.MonAnResponse'
               type: object
         "400":
           description: Dữ liệu không hợp lệ
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
       summary: Cập nhật giá món ăn
       tags:
       - MonAn
@@ -348,7 +766,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.ApDungGiamGiaRequest'
+          $ref: '#/definitions/dto.ApDungGiamGiaRequest'
       produces:
       - application/json
       responses:
@@ -356,15 +774,15 @@ paths:
           description: Áp dụng giảm giá thành công
           schema:
             allOf:
-            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - $ref: '#/definitions/dto.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+                  $ref: '#/definitions/dto.MonAnResponse'
               type: object
         "400":
           description: Dữ liệu không hợp lệ
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
       summary: Áp dụng giảm giá
       tags:
       - MonAn
@@ -386,18 +804,245 @@ paths:
           description: Đánh dấu hết hàng thành công
           schema:
             allOf:
-            - $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            - $ref: '#/definitions/dto.APIResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.MonAnResponse'
+                  $ref: '#/definitions/dto.MonAnResponse'
               type: object
         "400":
           description: Không thể đánh dấu hết hàng
           schema:
-            $ref: '#/definitions/restaurant_project_internal_presentation_http_dto.APIResponse'
+            $ref: '#/definitions/dto.APIResponse'
       summary: Đánh dấu hết hàng
       tags:
       - MonAn
+  /api/users:
+    get:
+      consumes:
+      - application/json
+      description: Lấy danh sách tất cả users (Manager+)
+      parameters:
+      - description: Filter by role
+        in: query
+        name: role
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserResponse'
+                  type: array
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Lấy danh sách users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Tạo user mới (Manager+)
+      parameters:
+      - description: Thông tin user mới
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Tạo user mới
+      tags:
+      - Users
+  /api/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Vô hiệu hóa user (Admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Vô hiệu hóa user
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Lấy thông tin user theo ID (Manager+)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Lấy user theo ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Cập nhật thông tin user (Manager+)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Thông tin cập nhật
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Cập nhật user
+      tags:
+      - Users
+  /api/users/me:
+    get:
+      consumes:
+      - application/json
+      description: Lấy thông tin của user đang đăng nhập
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/dto.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Lấy thông tin user hiện tại
+      tags:
+      - Users
+  /api/users/me/password:
+    put:
+      consumes:
+      - application/json
+      description: Đổi mật khẩu của user đang đăng nhập
+      parameters:
+      - description: Thông tin đổi mật khẩu
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Đổi mật khẩu
+      tags:
+      - Users
   /health:
     get:
       consumes:
@@ -409,11 +1054,11 @@ paths:
         "200":
           description: Hệ thống healthy
           schema:
-            $ref: '#/definitions/internal_presentation_http_handler.HealthResponse'
+            $ref: '#/definitions/handler.HealthResponse'
         "503":
           description: Hệ thống unhealthy
           schema:
-            $ref: '#/definitions/internal_presentation_http_handler.HealthResponse'
+            $ref: '#/definitions/handler.HealthResponse'
       summary: Full health check
       tags:
       - Health
@@ -428,7 +1073,7 @@ paths:
         "200":
           description: App đang chạy
           schema:
-            $ref: '#/definitions/internal_presentation_http_handler.LivenessResponse'
+            $ref: '#/definitions/handler.LivenessResponse'
       summary: Liveness probe
       tags:
       - Health
@@ -444,11 +1089,11 @@ paths:
         "200":
           description: App sẵn sàng
           schema:
-            $ref: '#/definitions/internal_presentation_http_handler.ReadinessResponse'
+            $ref: '#/definitions/handler.ReadinessResponse'
         "503":
           description: App chưa sẵn sàng
           schema:
-            $ref: '#/definitions/internal_presentation_http_handler.ReadinessResponse'
+            $ref: '#/definitions/handler.ReadinessResponse'
       summary: Readiness probe
       tags:
       - Health
