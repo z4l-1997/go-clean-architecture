@@ -198,10 +198,14 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshToken string, ol
 	}
 
 	// Check refresh token đã bị blacklist chưa (chống reuse attack)
+	// Fail-closed: nếu Redis lỗi → reject token (giống JWT middleware)
 	if claims.ID != "" {
 		if blacklistService := uc.jwtAuth.GetBlacklistService(); blacklistService != nil {
 			isBlacklisted, err := blacklistService.IsBlacklisted(ctx, claims.ID)
-			if err == nil && isBlacklisted {
+			if err != nil {
+				return nil, ErrInvalidToken
+			}
+			if isBlacklisted {
 				return nil, ErrInvalidToken
 			}
 		}

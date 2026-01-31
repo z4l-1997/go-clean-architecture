@@ -2,6 +2,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,26 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+// dirCreatingWriter wraps an io.Writer và tự tạo thư mục con khi rotate sang tháng mới
+type dirCreatingWriter struct {
+	logDir   string
+	delegate *rotatelogs.RotateLogs
+}
+
+func (w *dirCreatingWriter) Write(p []byte) (n int, err error) {
+	n, err = w.delegate.Write(p)
+	if err != nil {
+		// Có thể do thư mục chưa tồn tại, thử tạo và ghi lại
+		now := time.Now()
+		monthDir := filepath.Join(w.logDir, now.Format("2006"), now.Format("01"))
+		if mkErr := os.MkdirAll(monthDir, 0755); mkErr != nil {
+			return 0, fmt.Errorf("failed to create log dir %s: %w", monthDir, mkErr)
+		}
+		return w.delegate.Write(p)
+	}
+	return n, nil
+}
 
 var (
 	// Log là global logger instance
@@ -150,18 +171,25 @@ func NewLogger(cfg Config) (*zap.Logger, error) {
 			return nil, err
 		}
 
-		// Tạo pattern cho file rotation
-		// logs/app.log → logs/app.2024-01-27.log
+		// Tạo thư mục con theo năm/tháng hiện tại
+		now := time.Now()
+		monthDir := filepath.Join(logDir, now.Format("2006"), now.Format("01"))
+		if err := os.MkdirAll(monthDir, 0755); err != nil {
+			return nil, err
+		}
+
+		// Tạo pattern cho file rotation theo cấu trúc năm/tháng
+		// logs/app.log → logs/2026/01/app.2026-01-31.log
 		ext := filepath.Ext(cfg.LogFilePath)
-		basePath := strings.TrimSuffix(cfg.LogFilePath, ext)
-		pattern := basePath + ".%Y-%m-%d" + ext
+		baseName := strings.TrimSuffix(filepath.Base(cfg.LogFilePath), ext)
+		pattern := filepath.Join(logDir, "%Y", "%m", baseName+".%Y-%m-%d"+ext)
 
 		// Cấu hình file-rotatelogs
 		// - Rotate mỗi ngày (24h)
 		// - Rotate khi file vượt MaxSizeMB
 		// - Giữ file trong MaxAgeDays ngày
 		// Lưu ý: Không dùng cả MaxAge và RotationCount cùng lúc
-		fileWriter, err := rotatelogs.New(
+		rotateWriter, err := rotatelogs.New(
 			pattern,
 			rotatelogs.WithLinkName(cfg.LogFilePath),                          // Symlink đến file mới nhất
 			rotatelogs.WithRotationTime(24*time.Hour),                         // Rotate mỗi 24h
@@ -171,6 +199,9 @@ func NewLogger(cfg Config) (*zap.Logger, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// Wrap writer để tự tạo thư mục con khi rotate sang tháng mới
+		fileWriter := &dirCreatingWriter{logDir: logDir, delegate: rotateWriter}
 
 		// File luôn dùng JSON format (dễ parse)
 		fileEncoder = zapcore.NewJSONEncoder(encoderConfig)

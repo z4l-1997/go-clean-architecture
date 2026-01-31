@@ -18,6 +18,11 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required" example:"password123"`
 }
 
+// LogoutRequest là dữ liệu để đăng xuất (revoke cả access + refresh token)
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required" example:"eyJhbGciOiJIUzI1NiIs..."` // Refresh token cần revoke
+}
+
 // RefreshTokenRequest là dữ liệu để refresh access token
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required" example:"eyJhbGciOiJIUzI1NiIs..."`

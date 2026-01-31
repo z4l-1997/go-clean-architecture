@@ -50,11 +50,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	result, err := h.useCase.Register(c.Request.Context(), input)
 	if err != nil {
-		statusCode := http.StatusBadRequest
+		// Trả message chung cho username/email đã tồn tại
+		// Tránh username enumeration: hacker không biết username hay email bị trùng
 		if err == usecase.ErrUsernameExists || err == usecase.ErrEmailExists {
-			statusCode = http.StatusConflict
+			c.JSON(http.StatusConflict,
+				dto.NewErrorResponse("Đăng ký thất bại", errors.New("username hoặc email đã được sử dụng")))
+			return
 		}
-		c.JSON(statusCode,
+		c.JSON(http.StatusBadRequest,
 			dto.NewErrorResponse("Đăng ký thất bại", err))
 		return
 	}
@@ -178,18 +181,28 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		dto.NewSuccessResponse("Làm mới token thành công", response))
 }
 
-// Logout xử lý POST /api/auth/logout - Đăng xuất (revoke token)
+// Logout xử lý POST /api/auth/logout - Đăng xuất (revoke cả access + refresh token)
 // @Summary Đăng xuất
-// @Description Đăng xuất và revoke access token hiện tại
+// @Description Đăng xuất và revoke cả access token và refresh token
 // @Tags Auth
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param request body dto.LogoutRequest true "Refresh token cần revoke"
 // @Success 200 {object} dto.APIResponse
+// @Failure 400 {object} dto.APIResponse
 // @Failure 401 {object} dto.APIResponse
 // @Router /api/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// Lấy token từ header
+	// Parse request body để lấy refresh token
+	var req dto.LogoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest,
+			dto.NewErrorResponse("Vui lòng gửi refresh_token trong body", err))
+		return
+	}
+
+	// Lấy access token từ header
 	tokenString, ok := middleware.ExtractTokenFromHeader(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized,
@@ -197,20 +210,33 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	// Validate token và lấy claims
 	jwtAuth := h.useCase.GetJWTAuth()
-	claims, err := jwtAuth.ValidateToken(tokenString)
+
+	// 1. Blacklist access token
+	accessClaims, err := jwtAuth.ValidateToken(tokenString)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized,
-			dto.NewErrorResponse("Token không hợp lệ", err))
+			dto.NewErrorResponse("Access token không hợp lệ", err))
 		return
 	}
 
-	// Blacklist token
-	if err := jwtAuth.BlacklistToken(c, claims); err != nil {
+	if err := jwtAuth.BlacklistToken(c, accessClaims); err != nil {
 		c.JSON(http.StatusInternalServerError,
 			dto.NewErrorResponse("Không thể đăng xuất", err))
 		return
+	}
+
+	// 2. Blacklist refresh token
+	refreshClaims, err := jwtAuth.ParseTokenIgnoreExpiry(req.RefreshToken)
+	if err == nil && refreshClaims.ID != "" {
+		remainingTTL := jwtAuth.GetTokenRemainingTime(refreshClaims)
+		if remainingTTL > 0 {
+			if blacklistService := jwtAuth.GetBlacklistService(); blacklistService != nil {
+				_ = blacklistService.Blacklist(c.Request.Context(), refreshClaims.ID, remainingTTL)
+				// Lấy userID từ access token claims để untrack
+				_ = blacklistService.UntrackUserToken(c.Request.Context(), accessClaims.UserID, refreshClaims.ID)
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK,
