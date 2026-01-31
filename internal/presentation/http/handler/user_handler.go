@@ -98,25 +98,36 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 
 // GetUsers xử lý GET /api/users - Lấy danh sách users
 // @Summary Lấy danh sách users
-// @Description Lấy danh sách tất cả users (Manager+)
+// @Description Lấy danh sách tất cả users có phân trang (Manager+)
 // @Tags Users
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param role query string false "Filter by role"
-// @Success 200 {object} dto.APIResponse{data=[]dto.UserResponse}
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 20, max: 100)"
+// @Success 200 {object} dto.APIResponse{data=dto.PaginatedResponse}
 // @Failure 403 {object} dto.APIResponse
 // @Router /api/users [get]
 func (h *UserHandler) GetUsers(c *gin.Context) {
+	var pagination dto.PaginationRequest
+	if err := c.ShouldBindQuery(&pagination); err != nil {
+		c.JSON(http.StatusBadRequest,
+			dto.NewErrorResponse("Tham số phân trang không hợp lệ", err))
+		return
+	}
+
 	roleFilter := c.Query("role")
+	ctx := c.Request.Context()
 
 	var users []*entity.User
+	var total int64
 	var err error
 
 	if roleFilter != "" {
-		users, err = h.useCase.GetUsersByRole(c.Request.Context(), entity.UserRole(roleFilter))
+		users, total, err = h.useCase.GetUsersByRolePaginated(ctx, entity.UserRole(roleFilter), pagination.Offset(), pagination.Limit)
 	} else {
-		users, err = h.useCase.GetAllUsers(c.Request.Context())
+		users, total, err = h.useCase.GetAllUsersPaginated(ctx, pagination.Offset(), pagination.Limit)
 	}
 
 	if err != nil {
@@ -126,7 +137,8 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK,
-		dto.NewSuccessResponse("Lấy danh sách users thành công", dto.ToUserResponseList(users)))
+		dto.NewSuccessResponse("Lấy danh sách users thành công",
+			dto.NewPaginatedResponse(dto.ToUserResponseList(users), total, pagination.Page, pagination.Limit)))
 }
 
 // CreateUser xử lý POST /api/users - Tạo user mới

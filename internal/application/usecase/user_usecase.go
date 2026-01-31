@@ -7,9 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 
 	"restaurant_project/internal/domain/entity"
 	"restaurant_project/internal/domain/repository"
+	"restaurant_project/internal/domain/service"
+	"restaurant_project/pkg/logger"
 	"restaurant_project/pkg/password"
 )
 
@@ -44,13 +47,15 @@ type UpdateUserInput struct {
 
 // UserUseCase xử lý business logic liên quan đến User
 type UserUseCase struct {
-	repo repository.IUserRepository
+	repo           repository.IUserRepository
+	tokenBlacklist service.TokenBlacklistService
 }
 
 // NewUserUseCase tạo mới UserUseCase
-func NewUserUseCase(repo repository.IUserRepository) *UserUseCase {
+func NewUserUseCase(repo repository.IUserRepository, tokenBlacklist service.TokenBlacklistService) *UserUseCase {
 	return &UserUseCase{
-		repo: repo,
+		repo:           repo,
+		tokenBlacklist: tokenBlacklist,
 	}
 }
 
@@ -99,8 +104,19 @@ func (uc *UserUseCase) CreateUser(ctx context.Context, input CreateUserInput) (*
 
 	// Save to repository
 	if err := uc.repo.Save(ctx, user); err != nil {
+		logger.CtxError(ctx, "failed to save new user",
+			zap.String("target_username", input.Username),
+			zap.Error(err),
+		)
 		return nil, err
 	}
+
+	logger.CtxInfo(ctx, "user created",
+		zap.String("target_user_id", user.ID),
+		zap.String("target_username", user.Username),
+		zap.String("target_role", string(user.Role)),
+		zap.String("creator_role", string(input.CreatorRole)),
+	)
 
 	return user, nil
 }
@@ -154,9 +170,19 @@ func (uc *UserUseCase) GetAllUsers(ctx context.Context) ([]*entity.User, error) 
 	return uc.repo.FindAll(ctx)
 }
 
+// GetAllUsersPaginated lấy tất cả users có phân trang
+func (uc *UserUseCase) GetAllUsersPaginated(ctx context.Context, offset, limit int) ([]*entity.User, int64, error) {
+	return uc.repo.FindAllPaginated(ctx, offset, limit)
+}
+
 // GetUsersByRole lấy users theo role
 func (uc *UserUseCase) GetUsersByRole(ctx context.Context, role entity.UserRole) ([]*entity.User, error) {
 	return uc.repo.FindByRole(ctx, role)
+}
+
+// GetUsersByRolePaginated lấy users theo role có phân trang
+func (uc *UserUseCase) GetUsersByRolePaginated(ctx context.Context, role entity.UserRole, offset, limit int) ([]*entity.User, int64, error) {
+	return uc.repo.FindByRolePaginated(ctx, role, offset, limit)
 }
 
 // UpdateUser cập nhật thông tin user
@@ -190,8 +216,18 @@ func (uc *UserUseCase) UpdateUser(ctx context.Context, input UpdateUserInput) (*
 	user.NgayCapNhat = time.Now()
 
 	if err := uc.repo.Save(ctx, user); err != nil {
+		logger.CtxError(ctx, "failed to update user",
+			zap.String("target_user_id", input.ID),
+			zap.Error(err),
+		)
 		return nil, err
 	}
+
+	logger.CtxInfo(ctx, "user updated",
+		zap.String("target_user_id", input.ID),
+		zap.Bool("email_changed", input.Email != nil),
+		zap.Bool("active_changed", input.IsActive != nil),
+	)
 
 	return user, nil
 }
@@ -214,8 +250,18 @@ func (uc *UserUseCase) DeactivateUser(ctx context.Context, id string, requestorI
 	user.Deactivate()
 
 	if err := uc.repo.Save(ctx, user); err != nil {
+		logger.CtxError(ctx, "failed to deactivate user",
+			zap.String("target_user_id", id),
+			zap.Error(err),
+		)
 		return nil, err
 	}
+
+	logger.CtxWarn(ctx, "user deactivated",
+		zap.String("target_user_id", id),
+		zap.String("target_username", user.Username),
+		zap.String("requestor_id", requestorID),
+	)
 
 	return user, nil
 }
@@ -232,6 +278,9 @@ func (uc *UserUseCase) ChangePassword(ctx context.Context, userID, oldPassword, 
 
 	// Verify old password
 	if !password.Verify(oldPassword, user.PasswordHash) {
+		logger.CtxWarn(ctx, "password change failed: wrong old password",
+			zap.String("user_id", userID),
+		)
 		return ErrWrongPassword
 	}
 
@@ -246,5 +295,25 @@ func (uc *UserUseCase) ChangePassword(ctx context.Context, userID, oldPassword, 
 		return err
 	}
 
-	return uc.repo.Save(ctx, user)
+	if err := uc.repo.Save(ctx, user); err != nil {
+		logger.CtxError(ctx, "failed to save password change",
+			zap.String("user_id", userID),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	// Revoke tất cả tokens sau khi đổi password thành công (fail-open)
+	if err := uc.tokenBlacklist.RevokeAllUserTokens(ctx, userID); err != nil {
+		logger.CtxWarn(ctx, "failed to revoke tokens after password change",
+			zap.String("user_id", userID),
+			zap.Error(err),
+		)
+	}
+
+	logger.CtxInfo(ctx, "password changed",
+		zap.String("user_id", userID),
+	)
+
+	return nil
 }

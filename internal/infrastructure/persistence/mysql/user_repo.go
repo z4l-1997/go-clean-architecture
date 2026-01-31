@@ -113,6 +113,76 @@ func (r *UserMySQLRepo) FindAll(ctx context.Context) ([]*entity.User, error) {
 	return users, rows.Err()
 }
 
+// FindAllPaginated lấy users có phân trang
+func (r *UserMySQLRepo) FindAllPaginated(ctx context.Context, offset, limit int) ([]*entity.User, int64, error) {
+	// Count total
+	var total int64
+	countQuery := `SELECT COUNT(*) FROM users`
+	if err := r.db.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated
+	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat
+			  FROM users ORDER BY ngay_tao DESC LIMIT ? OFFSET ?`
+
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var users []*entity.User
+	for rows.Next() {
+		user := &entity.User{}
+		err := rows.Scan(
+			&user.ID, &user.Username, &user.Email, &user.PasswordHash,
+			&user.Role, &user.IsActive, &user.IsEmailVerified, &user.NgayTao, &user.NgayCapNhat,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		users = append(users, user)
+	}
+
+	return users, total, rows.Err()
+}
+
+// FindByRolePaginated lấy users theo role có phân trang
+func (r *UserMySQLRepo) FindByRolePaginated(ctx context.Context, role entity.UserRole, offset, limit int) ([]*entity.User, int64, error) {
+	// Count total
+	var total int64
+	countQuery := `SELECT COUNT(*) FROM users WHERE role = ?`
+	if err := r.db.QueryRowContext(ctx, countQuery, role).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	// Fetch paginated
+	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat
+			  FROM users WHERE role = ? ORDER BY ngay_tao DESC LIMIT ? OFFSET ?`
+
+	rows, err := r.db.QueryContext(ctx, query, role, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var users []*entity.User
+	for rows.Next() {
+		user := &entity.User{}
+		err := rows.Scan(
+			&user.ID, &user.Username, &user.Email, &user.PasswordHash,
+			&user.Role, &user.IsActive, &user.IsEmailVerified, &user.NgayTao, &user.NgayCapNhat,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		users = append(users, user)
+	}
+
+	return users, total, rows.Err()
+}
+
 // FindByRole lấy users theo role
 func (r *UserMySQLRepo) FindByRole(ctx context.Context, role entity.UserRole) ([]*entity.User, error) {
 	query := `SELECT id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat

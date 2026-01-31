@@ -22,8 +22,14 @@ type IUserRepository interface {
 	// FindAll lấy tất cả users
 	FindAll(ctx context.Context) ([]*entity.User, error)
 
+	// FindAllPaginated lấy users có phân trang
+	FindAllPaginated(ctx context.Context, offset, limit int) ([]*entity.User, int64, error)
+
 	// FindByRole lấy users theo role
 	FindByRole(ctx context.Context, role entity.UserRole) ([]*entity.User, error)
+
+	// FindByRolePaginated lấy users theo role có phân trang
+	FindByRolePaginated(ctx context.Context, role entity.UserRole, offset, limit int) ([]*entity.User, int64, error)
 
 	// Save lưu user mới hoặc cập nhật
 	Save(ctx context.Context, user *entity.User) error

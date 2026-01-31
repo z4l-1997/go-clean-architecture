@@ -14,8 +14,8 @@ func ProvideMonAnUseCase(repo repository.IMonAnRepository) *usecase.MonAnUseCase
 }
 
 // ProvideUserUseCase tạo User use case
-func ProvideUserUseCase(repo repository.IUserRepository) *usecase.UserUseCase {
-	return usecase.NewUserUseCase(repo)
+func ProvideUserUseCase(repo repository.IUserRepository, tokenBlacklist service.TokenBlacklistService) *usecase.UserUseCase {
+	return usecase.NewUserUseCase(repo, tokenBlacklist)
 }
 
 // ProvideAuthUseCase tạo Auth use case
