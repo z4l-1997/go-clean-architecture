@@ -126,9 +126,14 @@ func (r *Runner) registerRoutes(router *gin.Engine) {
 		authProtectedGroup.Use(r.app.Middlewares.JWTAuth.Middleware())
 		r.app.AuthHandler.RegisterProtectedRoutes(authProtectedGroup)
 
-		// MonAn routes
+		// MonAn routes (PUBLIC - xem menu)
 		monAnGroup := api.Group(r.app.MonAnHandler.BasePath())
 		r.app.MonAnHandler.RegisterRoutes(monAnGroup)
+
+		// MonAn protected routes (PROTECTED - thêm/sửa/xóa món)
+		monAnProtectedGroup := api.Group(r.app.MonAnHandler.BasePath())
+		monAnProtectedGroup.Use(r.app.Middlewares.JWTAuth.Middleware())
+		r.app.MonAnHandler.RegisterProtectedRoutes(monAnProtectedGroup)
 
 		// User routes (PROTECTED - cần JWT)
 		userGroup := api.Group(r.app.UserHandler.BasePath())

@@ -229,10 +229,14 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, refreshToken string, ol
 		}
 	}
 
-	// Cleanup: xóa JTI access token cũ khỏi user_tokens SET
+	// Blacklist + untrack access token cũ để không thể sử dụng lại
 	if oldAccessToken != "" {
 		if oldClaims, err := uc.jwtAuth.ParseTokenIgnoreExpiry(oldAccessToken); err == nil && oldClaims.ID != "" {
 			if blacklistService := uc.jwtAuth.GetBlacklistService(); blacklistService != nil {
+				remainingTTL := uc.jwtAuth.GetTokenRemainingTime(oldClaims)
+				if remainingTTL > 0 {
+					_ = blacklistService.Blacklist(ctx, oldClaims.ID, remainingTTL)
+				}
 				_ = blacklistService.UntrackUserToken(ctx, userID, oldClaims.ID)
 			}
 		}

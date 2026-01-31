@@ -225,7 +225,7 @@ func Load() *Config {
 				Enabled:         getEnvAsBool("JWT_ENABLED", true),
 				SecretKey:       getEnv("JWT_SECRET_KEY", "change-this-in-production"),
 				AccessTokenTTL:  getEnv("JWT_ACCESS_TOKEN_TTL", "15m"),
-				RefreshTokenTTL: getEnv("JWT_REFRESH_TOKEN_TTL", "168h"),
+				RefreshTokenTTL: getEnv("JWT_REFRESH_TOKEN_TTL", "2h"),
 			},
 			Timeout: TimeoutConfig{
 				Enabled:  getEnvAsBool("TIMEOUT_ENABLED", true),

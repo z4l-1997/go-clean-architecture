@@ -40,7 +40,8 @@ func (m *MySQLMigrator) Migrate(ctx context.Context) (*MigrationResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer mig.Close()
+	// Không gọi mig.Close() vì nó sẽ đóng luôn *sql.DB đang được share
+	// với toàn bộ ứng dụng. DB connection được quản lý bởi DBManager.
 
 	err = mig.Up()
 	if err != nil && err != migrate.ErrNoChange {
@@ -68,7 +69,6 @@ func (m *MySQLMigrator) Version(ctx context.Context) (uint, bool, error) {
 	if err != nil {
 		return 0, false, err
 	}
-	defer mig.Close()
 
 	return mig.Version()
 }

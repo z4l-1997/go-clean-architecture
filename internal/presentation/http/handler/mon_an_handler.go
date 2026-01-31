@@ -313,11 +313,15 @@ func (h *MonAnHandler) BasePath() string {
 	return "/mon-an"
 }
 
-// RegisterRoutes đăng ký tất cả routes của MonAn module
+// RegisterRoutes đăng ký PUBLIC routes (không cần JWT)
 func (h *MonAnHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("", h.XemMenu)
-	rg.POST("", h.ThemMon)
 	rg.GET("/:id", h.TimMon)
+}
+
+// RegisterProtectedRoutes đăng ký PROTECTED routes (cần JWT)
+func (h *MonAnHandler) RegisterProtectedRoutes(rg *gin.RouterGroup) {
+	rg.POST("", h.ThemMon)
 	rg.DELETE("/:id", h.XoaMon)
 	rg.PUT("/:id/gia", h.CapNhatGia)
 	rg.PUT("/:id/giam-gia", h.ApDungGiamGia)

@@ -10,6 +10,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 
+	"go.uber.org/zap"
+
 	"restaurant_project/internal/domain/service"
 	"restaurant_project/internal/infrastructure/config"
 	"restaurant_project/pkg/logger"
@@ -55,7 +57,7 @@ func NewJWTAuth(cfg config.JWTConfig, blacklistService service.TokenBlacklistSer
 
 	refreshTTL, _ := time.ParseDuration(cfg.RefreshTokenTTL)
 	if refreshTTL == 0 {
-		refreshTTL = 168 * time.Hour // 7 days
+		refreshTTL = 2 * time.Hour // 2 hours (rotation enabled)
 	}
 
 	return &JWTAuthMiddleware{
@@ -227,7 +229,17 @@ func (j *JWTAuthMiddleware) Middleware() gin.HandlerFunc {
 		// Check token blacklist (nếu token đã logout)
 		if j.blacklistService != nil && claims.ID != "" {
 			isBlacklisted, err := j.blacklistService.IsBlacklisted(c.Request.Context(), claims.ID)
-			if err == nil && isBlacklisted {
+			if err != nil {
+				// Fail-closed: từ chối request nếu không thể kiểm tra blacklist
+				logger.Error("Failed to check token blacklist", zap.Error(err))
+				c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+					"error":      "Unable to verify token status",
+					"code":       "BLACKLIST_CHECK_FAILED",
+					"request_id": logger.GetRequestID(c),
+				})
+				return
+			}
+			if isBlacklisted {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"error":      "Token has been revoked",
 					"code":       "TOKEN_REVOKED",
@@ -337,7 +349,7 @@ func (j *JWTAuthMiddleware) GetTokenRemainingTime(claims *UserClaims) time.Durat
 	return remaining
 }
 
-// BlacklistToken thêm token vào blacklist
+// BlacklistToken thêm token vào blacklist và xóa khỏi tracking
 func (j *JWTAuthMiddleware) BlacklistToken(c *gin.Context, claims *UserClaims) error {
 	if j.blacklistService == nil {
 		return nil
@@ -353,7 +365,18 @@ func (j *JWTAuthMiddleware) BlacklistToken(c *gin.Context, claims *UserClaims) e
 		return nil
 	}
 
-	return j.blacklistService.Blacklist(c.Request.Context(), claims.ID, ttl)
+	ctx := c.Request.Context()
+
+	if err := j.blacklistService.Blacklist(ctx, claims.ID, ttl); err != nil {
+		return err
+	}
+
+	// Xóa token khỏi user_tokens SET và token_user mapping
+	if claims.UserID != "" {
+		_ = j.blacklistService.UntrackUserToken(ctx, claims.UserID, claims.ID)
+	}
+
+	return nil
 }
 
 // GetBlacklistService trả về TokenBlacklistService (dùng cho AuthUseCase)
