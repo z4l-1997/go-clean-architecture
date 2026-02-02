@@ -110,8 +110,11 @@ func (uc *AuthUseCase) Register(ctx context.Context, input RegisterInput) (*Auth
 		return nil, err
 	}
 
-	// Save to repository
-	if err := uc.userRepo.Save(ctx, user); err != nil {
+	// Create in repository (INSERT thuần, không ON DUPLICATE KEY UPDATE)
+	if err := uc.userRepo.Create(ctx, user); err != nil {
+		if errors.Is(err, repository.ErrDuplicateEntry) {
+			return nil, ErrUsernameExists
+		}
 		return nil, err
 	}
 

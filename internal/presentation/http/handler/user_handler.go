@@ -243,6 +243,13 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	callerRole, exists := middleware.GetUserRole(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized,
+			dto.NewErrorResponse("Unauthorized", nil))
+		return
+	}
+
 	var req dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest,
@@ -251,14 +258,19 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	input := usecase.UpdateUserInput{
-		ID:       id,
-		Email:    req.Email,
-		IsActive: req.IsActive,
+		ID:         id,
+		Email:      req.Email,
+		IsActive:   req.IsActive,
+		CallerRole: entity.UserRole(callerRole),
 	}
 
 	user, err := h.useCase.UpdateUser(c.Request.Context(), input)
 	if err != nil {
-		c.JSON(http.StatusBadRequest,
+		statusCode := http.StatusBadRequest
+		if err == usecase.ErrPermissionDenied {
+			statusCode = http.StatusForbidden
+		}
+		c.JSON(statusCode,
 			dto.NewErrorResponse("Không thể cập nhật user", err))
 		return
 	}

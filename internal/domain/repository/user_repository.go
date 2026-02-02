@@ -3,8 +3,15 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"restaurant_project/internal/domain/entity"
+)
+
+// Repository-level errors
+var (
+	// ErrDuplicateEntry là lỗi khi INSERT vi phạm UNIQUE constraint
+	ErrDuplicateEntry = errors.New("duplicate entry")
 )
 
 // IUserRepository là interface định nghĩa các thao tác với dữ liệu User
@@ -31,7 +38,10 @@ type IUserRepository interface {
 	// FindByRolePaginated lấy users theo role có phân trang
 	FindByRolePaginated(ctx context.Context, role entity.UserRole, offset, limit int) ([]*entity.User, int64, error)
 
-	// Save lưu user mới hoặc cập nhật
+	// Create tạo user mới (trả lỗi nếu trùng unique constraint)
+	Create(ctx context.Context, user *entity.User) error
+
+	// Save cập nhật user đã tồn tại
 	Save(ctx context.Context, user *entity.User) error
 
 	// Delete xóa user theo ID

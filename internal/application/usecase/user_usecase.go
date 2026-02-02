@@ -40,9 +40,10 @@ type CreateUserInput struct {
 
 // UpdateUserInput là input để cập nhật user
 type UpdateUserInput struct {
-	ID       string
-	Email    *string
-	IsActive *bool
+	ID         string
+	Email      *string
+	IsActive   *bool
+	CallerRole entity.UserRole // Role của người thực hiện update
 }
 
 // UserUseCase xử lý business logic liên quan đến User
@@ -102,9 +103,13 @@ func (uc *UserUseCase) CreateUser(ctx context.Context, input CreateUserInput) (*
 		return nil, err
 	}
 
-	// Save to repository
-	if err := uc.repo.Save(ctx, user); err != nil {
-		logger.CtxError(ctx, "failed to save new user",
+	// Create in repository (INSERT thuần, không ON DUPLICATE KEY UPDATE)
+	if err := uc.repo.Create(ctx, user); err != nil {
+		// Map duplicate entry error (race condition: 2 request đồng thời pass ExistsByUsername/Email)
+		if errors.Is(err, repository.ErrDuplicateEntry) {
+			return nil, ErrUsernameExists
+		}
+		logger.CtxError(ctx, "failed to create new user",
 			zap.String("target_username", input.Username),
 			zap.Error(err),
 		)
@@ -195,6 +200,13 @@ func (uc *UserUseCase) UpdateUser(ctx context.Context, input UpdateUserInput) (*
 		return nil, ErrUserNotFound
 	}
 
+	// Authorization check: Manager chỉ được update staff/customer
+	if input.CallerRole != entity.RoleAdmin {
+		if user.Role == entity.RoleAdmin || user.Role == entity.RoleManager {
+			return nil, ErrPermissionDenied
+		}
+	}
+
 	// Update email if provided
 	if input.Email != nil {
 		// Check if email already used by another user
@@ -255,6 +267,14 @@ func (uc *UserUseCase) DeactivateUser(ctx context.Context, id string, requestorI
 			zap.Error(err),
 		)
 		return nil, err
+	}
+
+	// Revoke tất cả tokens sau khi deactivate thành công (fail-open)
+	if err := uc.tokenBlacklist.RevokeAllUserTokens(ctx, id); err != nil {
+		logger.CtxWarn(ctx, "failed to revoke tokens after deactivation",
+			zap.String("target_user_id", id),
+			zap.Error(err),
+		)
 	}
 
 	logger.CtxWarn(ctx, "user deactivated",

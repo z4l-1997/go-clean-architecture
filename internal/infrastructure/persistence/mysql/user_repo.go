@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"errors"
 
+	mysqldriver "github.com/go-sql-driver/mysql"
+
 	"restaurant_project/internal/domain/entity"
 	"restaurant_project/internal/domain/repository"
 )
@@ -210,7 +212,26 @@ func (r *UserMySQLRepo) FindByRole(ctx context.Context, role entity.UserRole) ([
 	return users, rows.Err()
 }
 
-// Save lưu user mới hoặc cập nhật
+// Create tạo user mới, trả lỗi nếu trùng unique constraint
+func (r *UserMySQLRepo) Create(ctx context.Context, user *entity.User) error {
+	query := `INSERT INTO users (id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat)
+			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+
+	_, err := r.db.ExecContext(ctx, query,
+		user.ID, user.Username, user.Email, user.PasswordHash,
+		user.Role, user.IsActive, user.IsEmailVerified, user.NgayTao, user.NgayCapNhat,
+	)
+	if err != nil {
+		var mysqlErr *mysqldriver.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return repository.ErrDuplicateEntry
+		}
+		return err
+	}
+	return nil
+}
+
+// Save cập nhật user đã tồn tại
 func (r *UserMySQLRepo) Save(ctx context.Context, user *entity.User) error {
 	query := `INSERT INTO users (id, username, email, password_hash, role, is_active, is_email_verified, ngay_tao, ngay_cap_nhat)
 			  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
